@@ -1,0 +1,5 @@
+/target
+/logos
+*.log
+*.json
+*.sh
