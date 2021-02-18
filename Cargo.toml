@@ -1,5 +1,5 @@
 [package]
-name = "twolves_score"
+name = "nba_eink_disp"
 version = "0.1.0"
 authors = ["rfm <r@robertmasen.pizza>"]
 edition = "2018"
