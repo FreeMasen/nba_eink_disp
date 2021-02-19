@@ -54,6 +54,18 @@ pub async fn find_next_game(team_id: &str) -> Game {
     panic!("Unable to find game in next 5 days");
 }
 
+pub async fn get_game_boxscore(game_id: &str) -> String {
+    let url = format!("https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{}.json", game_id);
+    let s: serde_json::Value = reqwest::get(&url).await.unwrap().json().await.unwrap();
+    serde_json::to_string_pretty(&s).unwrap()
+}
+
+pub async fn get_play_by_play(game_id: &str) -> String {
+    let url = format!("https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{}.json", game_id);
+    let s: serde_json::Value = reqwest::get(&url).await.unwrap().json().await.unwrap();
+    serde_json::to_string_pretty(&s).unwrap()
+}
+
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -64,6 +76,8 @@ struct Day {
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Game {
+    #[serde(alias = "gameId")]
+    pub id: StringOrNumber,
     #[serde(alias = "startTimeUTC")]
     #[serde(alias = "gameTimeUTC")]
     pub start_time: chrono::DateTime<Utc>,
@@ -112,7 +126,7 @@ pub struct Team {
     #[serde(alias = "losses")]
     pub loss: StringOrNumber,
     pub score: StringOrNumber,
-    pub in_bonus: Option<bool>,
+    pub in_bonus: Option<StringOrNumber>,
     pub timeouts_remaining: Option<u8>,
     #[serde(alias = "linescore")]
     pub periods: Vec<LineScore>,
@@ -130,6 +144,15 @@ impl PartialEq<&str> for StringOrNumber {
         match self {
             Self::String(s) => s == *other,
             Self::Number(n) => n.to_string() == *other
+        }
+    }
+}
+
+impl ToString for StringOrNumber {
+    fn to_string(&self) -> String {
+        match self {
+            Self::Number(n) => n.to_string(),
+            Self::String(s) => s.to_string(),
         }
     }
 }
@@ -175,6 +198,7 @@ enum Leaders {
 pub struct GameLeader {
     #[serde(alias = "personId")]
     pub id: StringOrNumber,
+    #[serde(default)]
     pub name: String,
     #[serde(alias = "jerseyNum")]
     pub number: String,
@@ -185,3 +209,27 @@ pub struct GameLeader {
     pub assists: u8,
 }
 
+// {
+//     "actionNumber": 2,
+//     "actionType": "period",
+//     "clock": "PT12M00.00S",
+//     "description": "Period Start",
+//     "edited": "2021-02-18T01:10:24Z",
+//     "isFieldGoal": 0,
+//     "orderNumber": 20000,
+//     "period": 1,
+//     "periodType": "REGULAR",
+//     "personId": 0,
+//     "personIdsFilter": [],
+//     "possession": 0,
+//     "qualifiers": [],
+//     "scoreAway": "0",
+//     "scoreHome": "0",
+//     "side": null,
+//     "subType": "start",
+//     "timeActual": "2021-02-18T01:10:24.1Z",
+//     "x": null,
+//     "xLegacy": null,
+//     "y": null,
+//     "yLegacy": null
+//   },
