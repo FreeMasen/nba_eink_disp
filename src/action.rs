@@ -2,7 +2,7 @@
 use serde::{Deserialize, Serialize};
 
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "camelCase")]
 pub enum Action {
     Period(ActionInfo),
@@ -22,7 +22,7 @@ pub enum Action {
     Unknown(ActionInfo),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ActionInfo {
     clock: String,
     desc: String,

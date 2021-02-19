@@ -2,6 +2,7 @@ import datetime
 import re
 import time
 import json
+import inotify.adapters
 
 WOLVES_ID = 1610612750
 def safe_lookup(d, key):
@@ -50,62 +51,83 @@ class Game:
         if isinstance(self.away, dict):
             self.away = Team(self.away)
         self.game_leaders = safe_lookup(d, "gameLeaders")
+    def start_datetime(self):
+        return datetime.datetime.strptime(self.start_time, "%Y-%m-%dT%H:%M:%S%z").astimezone(None)
 
-with open('data/today.json') as file:
-    today = json.load(file)
-    game = Game(today)
+def load_game():
+    try:
+        with open('data/today.json') as file:
+            today = json.load(file)
+            return Game(today)
+    except:
+        pass
 
-while True:
-    with open('data/play_by_play.json') as file: 
-        actions = json.load(file)
-        last = actions[-1]
-        print(last["clock"])
+
+def load_box_score():
+    try:
+        with open('data/box_score.json') as file:
+            return json.load(file)
+    except:
+        pass
+
+
+def load_play_by_play():
+    try:
+        with open('data/play_by_play.json') as file:
+            return json.load(file)
+    except:
+        pass
+
+
+game = load_game()
+box_score = load_box_score()
+play_by_play = load_play_by_play()
+last_update = datetime.datetime.now()
+
+def refresh_display():
+    if game is not None:
         print(f'{game.home.abv} {game.away.abv}')
-        print(f'{last["home_score"]: >3} {last["away_score"]: >3}')
-        print(last['desc'])
-    time.sleep(5)
+        if play_by_play is not None:
+            last = play_by_play[-1]
+            print(f'{last["home_score"]: >3} {last["away_score"]: >3}')
+            print(last["clock"])
+            print(last['desc'])
+        else:
+            now = datetime.datetime.now().astimezone(None)
+            secs = (game.start_datetime() - now).total_seconds()
+            if secs < 0:
+                print('Game started but no data')
+            elif secs < 60:
+                print(f'{int(secs)}s')
+            elif secs < 60 * 60:
+                print(f'{int(secs / 60)}m')
+            else:
+                raw_hours = secs / 60 / 60
+                hours = int(raw_hours)
+                minutes = int((raw_hours - hours) * 60)
+                print(f'{hours}h {minutes}m')
+    else:
+        print('no game data')
 
-# def data_type(v):
-#     if isinstance(v, list):
-#         return '|'.join([data_type(x) for x in v]) + '[]'
-#     return type(v).__name__
 
-# import os
-# uniques = dict()
-# for root, _d, files in os.walk('exp'):
-#     for file in files:
-#         if file.startswith('play'):
-#             with open(os.path.join(root, file)) as f:
-#                 d = json.load(f)
-#                 game = d['game']
-#                 acts = game['actions']
-#                 for act in acts:
-#                     ty = act['actionType']
-#                     curr = safe_lookup(uniques, ty)
-#                     if curr is None:
-#                         curr = dict()
-#                     ct = safe_lookup(curr, '__total_count')
-#                     if ct is None:
-#                         ct = 0
-#                     ct += 1
-#                     curr['__total_count'] = ct
-#                     for key, value in act.items():
-#                         data = safe_lookup(curr, key)
-#                         if data is None:
-#                             data = dict()
-#                         ct = safe_lookup(data, 'count')
-#                         if ct is None:
-#                             ct = 0
-#                         ct += 1
-#                         data['count'] = ct
-#                         tys = safe_lookup(data, 'types')
-#                         if tys is None:
-#                             tys = []
-#                         e_ty = data_type(value)
-#                         if e_ty not in tys:
-#                             tys.append(e_ty)
-#                         data['types'] = tys
-#                         curr[key] = data   
-#                     # curr.append(act)
-#                     uniques[ty] = curr
-# print(json.dumps(uniques))
+refresh_display()
+i = inotify.adapters.Inotify()
+i.add_watch('data')
+
+
+for event in i.event_gen():
+    if event is None:
+        continue
+    else:
+        (_, type_names, path, filename) = event
+        if 'IN_CREATE' in type_names or 'IN_MODIFY' in type_names:
+            if filename.startswith('today'):
+                game = load_game()
+            elif filename.startswith('box_score'):
+                box_score = load_box_score()
+            elif filename.startswith('play_by_play'):
+                play_by_play = load_play_by_play()
+    now = datetime.datetime.now()
+    if (now -  last_update).total_seconds() >= 5:
+        last_update = now
+        refresh_display()

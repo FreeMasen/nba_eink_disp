@@ -62,13 +62,17 @@ pub async fn find_next_game(team_id: &str) -> Game {
     panic!("Unable to find game in next 5 days");
 }
 
-pub async fn get_game_boxscore(game_id: &str) -> String {
+pub async fn get_game_boxscore(game_id: &str) -> Option<String> {
     let url = format!(
         "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{}.json",
         game_id
     );
-    let s: serde_json::Value = reqwest::get(&url).await.unwrap().json().await.unwrap();
-    serde_json::to_string_pretty(&s).unwrap()
+    let s = reqwest::get(&url).await.unwrap().text().await.unwrap();
+    let box_score: serde_json::Value = serde_json::from_str(&s).map_err(|e| {
+        std::fs::write("box_score_err.json", s).unwrap();
+        e
+    }).ok()?;
+    Some(serde_json::to_string_pretty(&box_score).unwrap())
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -90,7 +94,7 @@ pub async fn get_play_by_play(game_id: &str, home_team: &str, away_team: &str) -
     let play_by_play: serde_json::Map<String, Value> = serde_json::from_str(&content).map_err(|e| {
         std::fs::write("play_by_play_err.json", &content).unwrap();
         e
-    }).unwrap();
+    }).ok()?;
     let game = play_by_play.get("game").unwrap().as_object().unwrap();
     let actions = game.get("actions").unwrap().as_array().unwrap().to_owned();
     let ret = actions.into_iter().filter_map(|m| {
@@ -105,7 +109,7 @@ struct Day {
     num_games: u8,
     games: Vec<Game>,
 }
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Game {
     #[serde(alias = "gameId")]
@@ -127,14 +131,14 @@ pub struct Game {
     pub game_leaders: Option<GameLeaders>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum PeriodOrNumber {
     Period(Period),
     Number(u8),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Period {
     pub current: u8,
@@ -144,7 +148,7 @@ pub struct Period {
     pub is_end_of_period: bool,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Team {
     #[serde(alias = "teamId")]
@@ -164,7 +168,7 @@ pub struct Team {
     pub periods: Vec<LineScore>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(untagged)]
 pub enum StringOrNumber {
     String(String),
@@ -189,7 +193,7 @@ impl ToString for StringOrNumber {
     }
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct LineScore {
     score: StringOrNumber,
@@ -217,7 +221,7 @@ pub struct Scoreboard {
     pub games: Vec<Game>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct GameLeaders {
     pub home_leaders: GameLeader,
@@ -230,7 +234,7 @@ enum Leaders {
     Single(GameLeader),
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct GameLeader {
     #[serde(alias = "personId")]
