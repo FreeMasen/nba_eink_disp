@@ -1,5 +1,8 @@
+use action::Action;
 use chrono::{DateTime, Datelike, Local, Utc};
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+pub mod action;
 
 pub async fn find_last_game(team_id: &str) -> Game {
     let today = Local::now();
@@ -9,30 +12,35 @@ pub async fn find_last_game(team_id: &str) -> Game {
         for game in day.games.into_iter() {
             if game.home.id == team_id || game.away.id == team_id {
                 if game.end_time.is_some() {
-                    return game
-                } 
+                    return game;
+                }
             }
         }
     }
     panic!("Unable to find game in last 5 days");
 }
 
-
-pub async fn find_game_today(team_id: &str) -> Option<Game> {
+pub async fn find_game_today(team_abv: &str) -> Option<Game> {
     for _ in 0..5 {
-        if let Ok(res) = reqwest::get("https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json").await {
+        if let Ok(res) = reqwest::get(
+            "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
+        )
+        .await
+        {
             let json = res.text().await.unwrap();
-            let day: Today = serde_json::from_str(&json).map_err(|e| {
-                std::fs::write("today_err.json", &json).unwrap();                
-                e
-            }).unwrap();
+            let day: Today = serde_json::from_str(&json)
+                .map_err(|e| {
+                    std::fs::write("today_err.json", &json).unwrap();
+                    e
+                })
+                .unwrap();
             // let day = res.json::<Today>().await.unwrap();
             for game in day.scoreboard.games.into_iter() {
-                if game.home.id == team_id || game.away.id == team_id {
-                    return Some(game)
+                if game.home.tri_code == team_abv || game.away.tri_code == team_abv {
+                    return Some(game);
                 }
             }
-            return None
+            return None;
         }
     }
     None
@@ -46,8 +54,8 @@ pub async fn find_next_game(team_id: &str) -> Game {
         for game in day.games.into_iter() {
             if game.home.id == team_id || game.away.id == team_id {
                 if game.end_time.is_none() {
-                    return game
-                } 
+                    return game;
+                }
             }
         }
     }
@@ -55,17 +63,41 @@ pub async fn find_next_game(team_id: &str) -> Game {
 }
 
 pub async fn get_game_boxscore(game_id: &str) -> String {
-    let url = format!("https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{}.json", game_id);
+    let url = format!(
+        "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{}.json",
+        game_id
+    );
     let s: serde_json::Value = reqwest::get(&url).await.unwrap().json().await.unwrap();
     serde_json::to_string_pretty(&s).unwrap()
 }
 
-pub async fn get_play_by_play(game_id: &str) -> String {
-    let url = format!("https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{}.json", game_id);
-    let s: serde_json::Value = reqwest::get(&url).await.unwrap().json().await.unwrap();
-    serde_json::to_string_pretty(&s).unwrap()
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlayByPlay {
+    game: PlayByPlayGame,
 }
 
+#[derive(Debug, Serialize, Deserialize)]
+pub struct PlayByPlayGame {
+    pub actions: Vec<serde_json::Map<String, Value>>,
+}
+
+pub async fn get_play_by_play(game_id: &str, home_team: &str, away_team: &str) -> Option<Vec<Action>> {
+    let url = format!(
+        "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{}.json",
+        game_id
+    );
+    let content = reqwest::get(&url).await.ok()?.text().await.unwrap();
+    let play_by_play: serde_json::Map<String, Value> = serde_json::from_str(&content).map_err(|e| {
+        std::fs::write("play_by_play_err.json", &content).unwrap();
+        e
+    }).unwrap();
+    let game = play_by_play.get("game").unwrap().as_object().unwrap();
+    let actions = game.get("actions").unwrap().as_array().unwrap().to_owned();
+    let ret = actions.into_iter().filter_map(|m| {
+        action::Action::try_from_obj(m.as_object().unwrap().to_owned(), home_team, away_team)
+    }).collect();
+    Some(ret)
+}
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -92,7 +124,7 @@ pub struct Game {
     #[serde(alias = "vTeam")]
     #[serde(alias = "awayTeam")]
     pub away: Team,
-    pub game_leaders: Option<GameLeaders>
+    pub game_leaders: Option<GameLeaders>,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -136,14 +168,14 @@ pub struct Team {
 #[serde(untagged)]
 pub enum StringOrNumber {
     String(String),
-    Number(u32)
+    Number(u32),
 }
 
 impl PartialEq<&str> for StringOrNumber {
     fn eq(&self, other: &&str) -> bool {
         match self {
             Self::String(s) => s == *other,
-            Self::Number(n) => n.to_string() == *other
+            Self::Number(n) => n.to_string() == *other,
         }
     }
 }
@@ -164,13 +196,18 @@ pub struct LineScore {
 }
 
 fn url_for_date(dt: impl Datelike) -> String {
-    format!("https://data.nba.net/prod/v1/{}{:0>2}{:0>2}/scoreboard.json", dt.year(), dt.month(), dt.day())
+    format!(
+        "https://data.nba.net/prod/v1/{}{:0>2}{:0>2}/scoreboard.json",
+        dt.year(),
+        dt.month(),
+        dt.day()
+    )
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Today {
-    pub scoreboard: Scoreboard
+    pub scoreboard: Scoreboard,
 }
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -190,7 +227,7 @@ pub struct GameLeaders {
 #[serde(untagged)]
 enum Leaders {
     List(Vec<GameLeader>),
-    Single(GameLeader)
+    Single(GameLeader),
 }
 
 #[derive(Debug, Serialize, Deserialize)]

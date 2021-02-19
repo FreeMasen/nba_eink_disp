@@ -51,48 +51,61 @@ class Game:
             self.away = Team(self.away)
         self.game_leaders = safe_lookup(d, "gameLeaders")
 
-# while True:
-#     with open('data/today.json') as file:
-#         today = json.load(file)
-#         game = Game(today)
-#         print(game.clock)
-#         print(f'{game.home.abv} {game.away.abv}')
-#         print(f'{game.home.score: >3} {game.away.score: >3}')
-#     time.sleep(5)
-with open('data/play-2021-02-17 21:54:29.480063994 -06:00.json') as f:
-    d = json.load(f)
-    game = d['game']
-    acts = game['actions']
-    uniques = dict()
-    for act in acts:
-        ty = act['actionType']
-        curr = safe_lookup(uniques, ty)
-        if curr is None:
-            curr = dict()
-        ct = safe_lookup(curr, '__total_count')
-        if ct is None:
-            ct = 1
-        else:
-            ct += 1
-        curr['__total_count'] = ct
-        for key, value in act.items():
-            data = safe_lookup(curr, key)
-            if data is None:
-                data = dict()
-            ct = safe_lookup(data, 'count')
-            if ct is None:
-                ct = 0
-            else:
-                ct += 1
-            data['count'] = ct
-            tys = safe_lookup(data, 'types')
-            if tys is None:
-                tys = []
-            e_ty = type(value).__name__
-            if e_ty not in tys:
-                tys.append(e_ty)
-            data['types'] = tys
-            curr[key] = data   
-        # curr.append(act)
-        uniques[ty] = curr
-    print(json.dumps(uniques))
+with open('data/today.json') as file:
+    today = json.load(file)
+    game = Game(today)
+
+while True:
+    with open('data/play_by_play.json') as file: 
+        actions = json.load(file)
+        last = actions[-1]
+        print(last["clock"])
+        print(f'{game.home.abv} {game.away.abv}')
+        print(f'{last["home_score"]: >3} {last["away_score"]: >3}')
+        print(last['desc'])
+    time.sleep(5)
+
+# def data_type(v):
+#     if isinstance(v, list):
+#         return '|'.join([data_type(x) for x in v]) + '[]'
+#     return type(v).__name__
+
+# import os
+# uniques = dict()
+# for root, _d, files in os.walk('exp'):
+#     for file in files:
+#         if file.startswith('play'):
+#             with open(os.path.join(root, file)) as f:
+#                 d = json.load(f)
+#                 game = d['game']
+#                 acts = game['actions']
+#                 for act in acts:
+#                     ty = act['actionType']
+#                     curr = safe_lookup(uniques, ty)
+#                     if curr is None:
+#                         curr = dict()
+#                     ct = safe_lookup(curr, '__total_count')
+#                     if ct is None:
+#                         ct = 0
+#                     ct += 1
+#                     curr['__total_count'] = ct
+#                     for key, value in act.items():
+#                         data = safe_lookup(curr, key)
+#                         if data is None:
+#                             data = dict()
+#                         ct = safe_lookup(data, 'count')
+#                         if ct is None:
+#                             ct = 0
+#                         ct += 1
+#                         data['count'] = ct
+#                         tys = safe_lookup(data, 'types')
+#                         if tys is None:
+#                             tys = []
+#                         e_ty = data_type(value)
+#                         if e_ty not in tys:
+#                             tys.append(e_ty)
+#                         data['types'] = tys
+#                         curr[key] = data   
+#                     # curr.append(act)
+#                     uniques[ty] = curr
+# print(json.dumps(uniques))
