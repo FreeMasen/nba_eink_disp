@@ -2,11 +2,30 @@ import datetime
 import re
 import time
 import json
-# import inotify.adapters
 from watchdog.observers import Observer
 from watchdog.events import PatternMatchingEventHandler
 
-WOLVES_ID = 1610612750
+import digitalio
+import busio
+import board
+from adafruit_epd.epd import Adafruit_EPD
+
+spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
+ecs = digitalio.DigitalInOut(board.CE0)
+dc = digitalio.DigitalInOut(board.D22)
+rst = digitalio.DigitalInOut(board.D27)
+busy = digitalio.DigitalInOut(board.D17)
+srcs = None
+
+from adafruit_epd.ssd1675 import Adafruit_SSD1675
+display = Adafruit_SSD1675(
+    122, 250,
+    spi, cs_pin=ecs,
+    dc_pin=dc, sramcs_pin=srcs,
+    rst_pin=rst, busy_pin=busy)
+display.fill(Adafruit_EPD.WHITE)
+display.rotation = 1
+
 def safe_lookup(d, key):
     try:
         return d[key]
@@ -109,6 +128,9 @@ def refresh_display(game, box_score, play_by_play):
             hours = int(raw_hours)
             minutes = int((raw_hours - hours) * 60)
             print(f'{hours}h {minutes}m')
+    display.display()
+
+
 game = load_game()
 box_score = load_box_score()
 play_by_play = load_play_by_play()
