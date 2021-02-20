@@ -66,7 +66,8 @@ impl Action {
                 let team = value.get("teamTricode")?.as_str()?;
                 let player = value.get("playerNameI")?.as_str()?;
                 let sub = value.get("subType")?.as_str()?;
-                inner.desc = format!("2pts {} {} {}", team, player, sub);
+                let what = value.get("shotResult")?.as_str()?;
+                inner.desc = format!("{} 2pts {} {} {}", what, team, player, sub.to_lowercase());
                 Self::Points(inner)
             }
             "3pt" => {

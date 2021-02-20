@@ -241,12 +241,17 @@ pub struct GameLeader {
     pub id: StringOrNumber,
     #[serde(default)]
     pub name: String,
-    #[serde(alias = "jerseyNum")]
+    #[serde(alias = "jerseyNum", default)]
     pub number: String,
+    #[serde(default)]
     pub position: String,
+    #[serde(default)]
     pub player_slug: Option<String>,
+    #[serde(default)]
     pub points: u8,
+    #[serde(default)]
     pub rebounds: u8,
+    #[serde(default)]
     pub assists: u8,
 }
 

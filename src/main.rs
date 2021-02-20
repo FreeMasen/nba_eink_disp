@@ -26,13 +26,13 @@ async fn main() {
             if let Some(play) = get_play_by_play(&today.id.to_string(), &today.home.tri_code, &today.away.tri_code).await {
                 if let Some(prev) = last_play.as_mut() {
                     if play != *prev {
-                        let json = serde_json::to_string_pretty(&today).unwrap();
-                        std::fs::write("data/box_score.json", &json).unwrap();
+                        let json = serde_json::to_string_pretty(&play).unwrap();
+                        std::fs::write("data/play_by_play.json", &json).unwrap();
                         *prev = play;
                     }
                 } else {
-                    let json = serde_json::to_string_pretty(&today).unwrap();
-                    std::fs::write("data/box_score.json", &json).unwrap();
+                    let json = serde_json::to_string_pretty(&play).unwrap();
+                    std::fs::write("data/play_by_play.json", &json).unwrap();
                     last_play = Some(play);
                 }
             }
