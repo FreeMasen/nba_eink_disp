@@ -2,7 +2,9 @@ import datetime
 import re
 import time
 import json
-import inotify.adapters
+# import inotify.adapters
+from watchdog.observers import Observer
+from watchdog.events import PatternMatchingEventHandler
 
 WOLVES_ID = 1610612750
 def safe_lookup(d, key):
@@ -72,62 +74,92 @@ def load_box_score():
 
 
 def load_play_by_play():
+    print('load_play_by_play')
     try:
         with open('data/play_by_play.json') as file:
             return json.load(file)
-    except:
-        pass
+    except Exception as e:
+        print(f'failed to update play by play: {e}')
 
 
+
+last_update = datetime.datetime.now()
+
+def refresh_display(game, box_score, play_by_play):
+    if game is not None:
+        print(f'{game.home.abv} {game.away.abv}')
+    else:
+        print('HOM VIS')
+    if play_by_play is not None:
+        last = play_by_play[-1]
+        print(f'{last["home_score"]: >3} {last["away_score"]: >3}')
+        print(last["clock"])
+        print(last['desc'])
+    else:
+        now = datetime.datetime.now().astimezone(None)
+        secs = (game.start_datetime() - now).total_seconds()
+        if secs < 0:
+            print('Game started but no data')
+        elif secs < 60:
+            print(f'{int(secs)}s')
+        elif secs < 60 * 60:
+            print(f'{int(secs / 60)}m')
+        else:
+            raw_hours = secs / 60 / 60
+            hours = int(raw_hours)
+            minutes = int((raw_hours - hours) * 60)
+            print(f'{hours}h {minutes}m')
 game = load_game()
 box_score = load_box_score()
 play_by_play = load_play_by_play()
-last_update = datetime.datetime.now()
+def watch_data_file():
+    global game
+    global box_score
+    global play_by_play
+    
+    obs = Observer()
+    handler = PatternMatchingEventHandler(['*.json'], None, False, True)
+    def updated(event):
+        global game
+        global box_score
+        global play_by_play
+        if event.event_type not in ['created', 'modified']:
+            return
+        if 'today.json' in event.src_path:
+            game = load_game()
+        elif 'box_score.json' in event.src_path:
+            box_score = load_box_score()
+        elif 'play_by_play.json' in event.src_path:
+            play_by_play = load_play_by_play()
 
-def refresh_display():
-    if game is not None:
-        print(f'{game.home.abv} {game.away.abv}')
-        if play_by_play is not None:
-            last = play_by_play[-1]
-            print(f'{last["home_score"]: >3} {last["away_score"]: >3}')
-            print(last["clock"])
-            print(last['desc'])
-        else:
-            now = datetime.datetime.now().astimezone(None)
-            secs = (game.start_datetime() - now).total_seconds()
-            if secs < 0:
-                print('Game started but no data')
-            elif secs < 60:
-                print(f'{int(secs)}s')
-            elif secs < 60 * 60:
-                print(f'{int(secs / 60)}m')
-            else:
-                raw_hours = secs / 60 / 60
-                hours = int(raw_hours)
-                minutes = int((raw_hours - hours) * 60)
-                print(f'{hours}h {minutes}m')
-    else:
-        print('no game data')
+    handler.on_any_event = updated
+    obs.schedule(handler, 'data')
+    obs.start()
+    try:
+        while True:
+            refresh_display(game, box_score, play_by_play)
+            time.sleep(5)
+    finally:
+        obs.stop()
+        obs.join()
+# i = inotify.adapters.Inotify()
+# i.add_watch('data')
 
+watch_data_file()
 
-refresh_display()
-i = inotify.adapters.Inotify()
-i.add_watch('data')
-
-
-for event in i.event_gen():
-    if event is None:
-        continue
-    else:
-        (_, type_names, path, filename) = event
-        if 'IN_CREATE' in type_names or 'IN_MODIFY' in type_names:
-            if filename.startswith('today'):
-                game = load_game()
-            elif filename.startswith('box_score'):
-                box_score = load_box_score()
-            elif filename.startswith('play_by_play'):
-                play_by_play = load_play_by_play()
-    now = datetime.datetime.now()
-    if (now -  last_update).total_seconds() >= 5:
-        last_update = now
-        refresh_display()
+# for event in i.event_gen():
+#     if event is None:
+#         continue
+#     else:
+#         (_, type_names, path, filename) = event
+#         if 'IN_CREATE' in type_names or 'IN_MODIFY' in type_names:
+#             if filename.startswith('today'):
+#                 game = load_game()
+#             elif filename.startswith('box_score'):
+#                 box_score = load_box_score()
+#             elif filename.startswith('play_by_play'):
+#                 play_by_play = load_play_by_play()
+#     now = datetime.datetime.now()
+#     if (now -  last_update).total_seconds() >= 5:
+#         last_update = now
+#         refresh_display()

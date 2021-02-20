@@ -7,6 +7,7 @@ async fn main() {
     let mut last_today = None;
     let mut last_box = None;
     let mut last_play = None;
+    let mut i = 0;
     loop {
         let today = find_game_today(&team_abv).await;
         if let Some(today) = today {
@@ -47,6 +48,13 @@ async fn main() {
                 std::fs::write("data/today.json", &json).unwrap();
                 last_today = Some(today);
             }
+        }
+        i += 1;
+        if i > 5 {
+            i = 0;
+            last_box = None;
+            last_play = None;
+            last_today = None;
         }
         tokio::time::sleep(Duration::from_secs(1)).await;
     }
