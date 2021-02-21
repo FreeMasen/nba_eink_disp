@@ -128,8 +128,9 @@ class DisplayState:
                 fill=FOREGROUND_COLOR
             )
             actions_y = teams_height + score_height + 10 + 5 + 5
-            events = self.last_few_events(3)
+            events = ''
             for i in range(2, -1, -1):
+                print(events)
                 if i == 0:
                     events = ''
                     break
