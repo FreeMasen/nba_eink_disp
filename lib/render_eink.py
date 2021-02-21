@@ -4,21 +4,22 @@ import busio
 import board
 from adafruit_epd.epd import Adafruit_EPD
 from PIL import Image, ImageDraw, ImageFont
+from adafruit_epd.ssd1675 import Adafruit_SSD1675
 from . import util
 
 MINUTE = 60
 HOUR = 60 * MINUTE
 BACKGROUND_COLOR=(255,255,255)
 FOREGROUND_COLOR=(0,0,0)
-
+import os
+try:
+    font_path = os.environ['NBA_EINK_FONT']
+except:
+    font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 # https://www.dafont.com/lemon-milk.font
-small_font = ImageFont.truetype(
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16
-)
-medium_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
-large_font = ImageFont.truetype(
-    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24
-)
+small_font = ImageFont.truetype(font_path, 8)
+medium_font = ImageFont.truetype(font_path, 16)
+large_font = ImageFont.truetype(font_path, 24)
 
 spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
 ecs = digitalio.DigitalInOut(board.CE0)
@@ -27,7 +28,7 @@ rst = digitalio.DigitalInOut(board.D27)
 busy = digitalio.DigitalInOut(board.D17)
 srcs = None
 
-from adafruit_epd.ssd1675 import Adafruit_SSD1675
+
 display = Adafruit_SSD1675(
     122, 250,
     spi, cs_pin=ecs,
