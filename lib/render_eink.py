@@ -59,37 +59,36 @@ class DisplayState:
             self.play_by_play = play_by_play
 
         def home_team_score(self):
-            print(f'InGameState.home_team_score')
             if not self.has_play_by_play():
                 return '  0'
             score = self.play_by_play[-1]['home_score']
             return f'{score: >3}'
 
         def away_team_score(self):
-            print(f'InGameState.away_team_score')
             if not self.has_play_by_play():
                 return '  0'
             score = self.play_by_play[-1]['away_score']
             return f'{score: >3}'
         
         def clock(self):
-            print(f'InGameState.clock')
             if not self.has_play_by_play():
                 return '00:00'
             return self.play_by_play[-1]['clock']
 
         def last_few_events(self, ct):
-            print(f'InGameState.last_few_events')
             if not self.has_play_by_play():
                 return ''
             '\n'.join([p['desc'] for p in self.play_by_play[-ct:]])
 
+        def last_event(self):
+            if not self.has_play_by_play():
+                return ''
+            return self.play_by_play[-1]['desc']
+
         def has_play_by_play(self):
-            print(f'InGameState.has_play_by_play')
             return self.play_by_play is not None and len(self.play_by_play) > 0
 
         def render(self, display, play_by_play):
-            print(f'InGameState.render')
             if play_by_play is not None:
                 self.play_by_play = play_by_play
             image = Image.new("RGB", (display.width, display.height))
@@ -114,7 +113,7 @@ class DisplayState:
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (away_width, _score_height) = large_font.getsize(self.away_team_score())
+            (away_width, score_height) = large_font.getsize(self.away_team_score())
             draw.text(
                 (display.width - away_width - 10, teams_height + 15),
                 self.away_team_score(),
@@ -128,7 +127,8 @@ class DisplayState:
                 font=small_font,
                 fill=FOREGROUND_COLOR
             )
-            # actions_y = teams_height + score_height + 30
+            actions_y = teams_height + score_height + 10 + 5 + 5
+            events = self.last_event()
             # events = ''
             # for i in range(3, -1, -1):
             #     if i == 0:
@@ -138,12 +138,12 @@ class DisplayState:
             #     (events_height, _) = small_font.getsize(events)
             #     if actions_y + events_height <= display.height:
             #         break
-            # display.text(
-            #     (5, actions_y),
-            #     events,
-            #     font=small_font,
-            #     fill=FOREGROUND_COLOR
-            # )
+            display.text(
+                (5, actions_y),
+                events,
+                font=small_font,
+                fill=FOREGROUND_COLOR
+            )
                 
             display.image(image)
             display.display()
