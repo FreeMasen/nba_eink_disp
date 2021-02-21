@@ -120,22 +120,22 @@ class DisplayState:
                 font=small_font,
                 fill=FOREGROUND_COLOR
             )
-            actions_y = teams_height + score_height + 30
-            events = ''
-            for i in range(3, -1, -1):
-                if i == 0:
-                    events = ''
-                    break
-                events = self.last_few_events(i)
-                (events_height, _) = small_font.getsize(events)
-                if actions_y + events_height <= display.height:
-                    break
-            display.text(
-                (5, actions_y),
-                events,
-                font=small_font,
-                fill=FOREGROUND_COLOR
-            )
+            # actions_y = teams_height + score_height + 30
+            # events = ''
+            # for i in range(3, -1, -1):
+            #     if i == 0:
+            #         events = ''
+            #         break
+            #     events = self.last_few_events(i)
+            #     (events_height, _) = small_font.getsize(events)
+            #     if actions_y + events_height <= display.height:
+            #         break
+            # display.text(
+            #     (5, actions_y),
+            #     events,
+            #     font=small_font,
+            #     fill=FOREGROUND_COLOR
+            # )
                 
             display.image(image)
             display.display()
