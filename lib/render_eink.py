@@ -17,7 +17,7 @@ try:
 except:
     font_path = '/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf'
 # https://www.dafont.com/lemon-milk.font
-small_font = ImageFont.truetype(font_path, 8)
+small_font = ImageFont.truetype(font_path, 12)
 medium_font = ImageFont.truetype(font_path, 16)
 large_font = ImageFont.truetype(font_path, 24)
 
@@ -186,21 +186,20 @@ class DisplayState:
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (teams_height, away_width) = large_font.getsize(self.away_team_abv())
+            (away_width, teams_height) = large_font.getsize(self.away_team_abv())
             draw.text(
                 (display.width - away_width - 10, 10),
                 self.away_team_abv(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (_, time_width) = large_font.getsize(self.game_time())
+            (time_width, _) = large_font.getsize(self.game_time())
             draw.text(
                 (display.width // 2 - time_width // 2, teams_height + 10),
                 self.game_time(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            draw.text()
             display.image(image)
             display.display()
 
