@@ -138,7 +138,7 @@ class DisplayState:
             #     (events_height, _) = small_font.getsize(events)
             #     if actions_y + events_height <= display.height:
             #         break
-            display.text(
+            draw.text(
                 (5, actions_y),
                 events,
                 font=small_font,
