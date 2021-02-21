@@ -203,19 +203,19 @@ class DisplayState:
                 fill=FOREGROUND_COLOR
             )
             draw.text(
-                (10, teams_height + 5),
+                (10, teams_height + 10),
                 self.home_record(),
                 font=medium_font,
                 fill=FOREGROUND_COLOR
             )
             (away_width, record_height) = medium_font.getsize(self.away_record())
             draw.text(
-                (display.width - away_width - 10, teams_height + 5),
+                (display.width - away_width - 10, teams_height + 10),
                 self.away_record(),
                 font=medium_font,
                 fill=FOREGROUND_COLOR
             )
-            time_y = 10 + teams_height + 5 + record_height
+            time_y = 10 + teams_height + 10 + record_height + 10
             (time_width, _) = large_font.getsize(self.game_time())
             draw.text(
                 (display.width // 2 - time_width // 2, teams_height + 10),
