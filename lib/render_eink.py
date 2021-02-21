@@ -101,7 +101,7 @@ class DisplayState:
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (teams_height, away_size) = large_font.getsize(self.away_team_abv())
+            (away_size, teams_height) = large_font.getsize(self.away_team_abv())
             draw.text(
                 (display.width - away_size - 20, 10),
                 self.away_team_abv(),
@@ -114,14 +114,14 @@ class DisplayState:
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (_score_height, away_width) = large_font.getsize(self.away_team_score())
+            (away_width, _score_height) = large_font.getsize(self.away_team_score())
             draw.text(
                 (display.width - away_width - 10, teams_height + 10),
                 self.away_team_score(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (_, clock_width) = small_font.getsize(self.clock())
+            (clock_width, _) = small_font.getsize(self.clock())
             draw.text(
                 ((display.width // 2) - (clock_width // 2), 5),
                 self.clock(),
