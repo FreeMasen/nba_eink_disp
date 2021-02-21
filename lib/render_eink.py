@@ -179,11 +179,11 @@ class DisplayState:
         def home_record(self):
             if self.game is None:
                 return ''
-            return f'{self.game.home.wins}-{self.game.home.losses}'
+            return f'{self.game.home.win}-{self.game.home.loss}'
         def away_record(self):
             if self.game is None:
                 return ''
-            return f'{self.game.away.wins}-{self.game.away.losses}'
+            return f'{self.game.away.win}-{self.game.away.loss}'
 
         def render(self, display, play_by_play):
             image = Image.new("RGB", (display.width, display.height))
