@@ -218,7 +218,7 @@ class DisplayState:
             time_y = 10 + teams_height + 10 + record_height + 10
             (time_width, _) = large_font.getsize(self.game_time())
             draw.text(
-                (display.width // 2 - time_width // 2, teams_height + 10),
+                (display.width // 2 - time_width // 2, time_y),
                 self.game_time(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
