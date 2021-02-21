@@ -123,7 +123,7 @@ def watch_data_file(data_dir, cb):
     obs.start()
     try:
         while True:
-            time.sleep(1)
+            time.sleep(60 * 3)
     finally:
         obs.stop()
         obs.join()
