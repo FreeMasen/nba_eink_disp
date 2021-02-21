@@ -93,7 +93,7 @@ class DisplayState:
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (teams_height, away_size) = large_font.get_size(self.away_team_abv())
+            (teams_height, away_size) = large_font.getsize(self.away_team_abv())
             draw.text(
                 (display.width - away_size - 10, 10),
                 self.away_team_abv(),
@@ -106,14 +106,14 @@ class DisplayState:
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (score_height, away_width) = large_font.get_size(self.away_team_score())
+            (score_height, away_width) = large_font.getsize(self.away_team_score())
             draw.text(
                 (display.width - away_width - 10, teams_height + 10),
                 self.away_team_score(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (_, clock_width) = small_font.get_size(self.clock())
+            (_, clock_width) = small_font.getsize(self.clock())
             draw.text(
                 ((display.width // 2) - (clock_width // 2), 5),
                 self.clock(),
@@ -126,7 +126,7 @@ class DisplayState:
                     events = ''
                     break
                 events = self.last_few_events(3)
-                (events_height, _) = small_font.get_size(events)
+                (events_height, _) = small_font.getsize(events)
                 if actions_y + events_height <= display.height:
                     break
             display.text(
@@ -176,14 +176,14 @@ class DisplayState:
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (teams_height, away_width) = large_font.get_size(self.away_team_abv())
+            (teams_height, away_width) = large_font.getsize(self.away_team_abv())
             draw.text(
                 (display.width - away_width - 10, 10),
                 self.away_team_abv(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (_, time_width) = large_font.get_size(self.game_time())
+            (_, time_width) = large_font.getsize(self.game_time())
             draw.text(
                 (display.width // 2 - time_width // 2, teams_height + 10),
                 self.game_time(),
