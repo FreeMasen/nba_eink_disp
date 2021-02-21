@@ -78,7 +78,7 @@ class DisplayState:
         def last_few_events(self, ct):
             if not self.has_play_by_play():
                 return ''
-            '\n'.join([p['desc'] for p in self.play_by_play[-ct:]])
+            return '\n'.join([p['desc'] for p in self.play_by_play[-ct:]])
 
         def last_event(self):
             if not self.has_play_by_play():
