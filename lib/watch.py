@@ -40,6 +40,16 @@ class Player:
 
 class Game:
     def __init__(self, d):
+        self.start_time = None
+        self.end_time = None
+        self.clock = None
+        self.period = None
+        self.home = None
+        self.away = None
+        self.game_leaders = None
+        self.update(d)
+
+    def update(self, d):
         self.start_time = safe_lookup(d, "startTime")
         self.end_time = safe_lookup(d, "endTime")
         self.clock = safe_lookup(d, "clock")
@@ -54,6 +64,13 @@ class Game:
     def start_datetime(self):
         return datetime.datetime.strptime(self.start_time, "%Y-%m-%dT%H:%M:%S%z").astimezone(None)
 
+    def has_started(self):
+        now = datetime.datetime.now().astimezone(None)
+        return (self.start_datetime() - now).total_seconds() <= 0
+
+    def is_over(self):
+        return self.end_time is not None
+    
 def load_game():
     try:
         with open('data/today.json') as file:
@@ -62,14 +79,12 @@ def load_game():
     except:
         pass
 
-
 def load_box_score():
     try:
         with open('data/box_score.json') as file:
             return json.load(file)
     except:
         pass
-
 
 def load_play_by_play():
     try:

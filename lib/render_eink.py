@@ -1,8 +1,24 @@
-
+import datetime
 import digitalio
 import busio
 import board
 from adafruit_epd.epd import Adafruit_EPD
+from PIL import Image, ImageDraw, ImageFont
+from . import util
+
+MINUTE = 60
+HOUR = 60 * MINUTE
+BACKGROUND_COLOR=(255,255,255)
+FOREGROUND_COLOR=(0,0,0)
+
+# https://www.dafont.com/lemon-milk.font
+small_font = ImageFont.truetype(
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 16
+)
+medium_font = ImageFont.truetype("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf", 20)
+large_font = ImageFont.truetype(
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", 24
+)
 
 spi = busio.SPI(board.SCK, MOSI=board.MOSI, MISO=board.MISO)
 ecs = digitalio.DigitalInOut(board.CE0)
@@ -20,5 +36,183 @@ display = Adafruit_SSD1675(
 display.fill(Adafruit_EPD.WHITE)
 display.rotation = 1
 
+class DisplayState:
+    class ProtoGame:
+        def __init__(self, game):
+            self.game = game
+
+        def home_team_abv(self):
+            if self.game is None:
+                return 'HOM'
+            return self.game.home.abv
+
+        def away_team_abv(self):
+            if self.game is None:
+                return 'VIS'
+            return self.game.away.abv
+            
+    class InGameState(ProtoGame):
+        ty = 'InGame'
+        def __init__(self, game, play_by_play):
+            ProtoGame.__init__(game)
+            self.game = game
+            self.play_by_play = play_by_play
+
+        def home_team_score(self):
+            if not self.has_play_by_play():
+                return '  0'
+            return f'{self.play_by_play[-1]['home_score']}'
+
+        def away_team_score(self):
+            if not self.has_play_by_play():
+                return '  0'
+            return f'{self.play_by_play[-1]['away_score']}'
+        
+        def clock(self):
+            if not self.has_play_by_play():
+                return '00:00'
+            self.play_by_play[-1]['clock']
+
+        def last_few_events(self, ct):
+            if not self.has_play_by_play():
+                return ''
+            '\n'.join([p['desc'] for p in self.play_by_play[-ct:]])
+
+        def has_play_by_play(self):
+            return self.play_by_play is None and len(self.play_by_play) == 0
+
+        def render(self, display, play_by_play):
+            image = Image.new("RGB", (display.width, display.height))
+            draw = ImageDraw.Draw(image)
+            draw.rectangle((0, 0, display.width, display.height), fill=BACKGROUND_COLOR)            
+            draw.text(
+                (10, 10)
+                self.home_team_abv(),
+                font=large_font,
+                fill=FOREGROUND_COLOR
+            )
+            (teams_height, away_size) = large_font.get_size(self.away_team_abv())
+            draw.text(
+                (display.width - away_size - 10, 10)
+                self.away_team_abv(),
+                font=large_font,
+                fill=FOREGROUND_COLOR
+            )
+            draw.text(
+                (10, teams_height + 10),
+                self.home_team_score(),
+                font=large_font,
+                fill=FOREGROUND_COLOR
+            )
+            (score_height, away_width) = large_font.get_size(self.away_team_score())
+            draw.text(
+                (display.width - away_width - 10, teams_height + 10),
+                self.away_team_score(),
+                font=large_font,
+                fill=FOREGROUND_COLOR
+            )
+            (_, clock_width) = small_font.get_size(self.clock())
+            draw.text(
+                ((display.width // 2) - (clock_width // 2), 5),
+                self.clock(),
+                font=small_font,
+                fill=FOREGROUND_COLOR
+            )
+            actions_y = teams_height + score_height + 30
+            for i in range(3, -1, -1):
+                if i == 0:
+                    events = ''
+                    break
+                events = self.last_few_events(3)
+                (events_height, _) = small_font.get_size(events)
+                if actions_y + events_height <= display.height:
+                    break
+            display.text(
+                (5, actions_y),
+                events,
+                font=small_font,
+                fill=FOREGROUND_COLOR
+            )
+                
+            display.image(image)
+            display.display()
+
+    class PreGameState(ProtoGame):
+        ty = 'PreGame'
+        def __init__(self, game):
+            ProtoGame.__init__(game)
+            self.game = game
+            if game is None:
+                self._start_time = None
+            else:
+                self._start_time = self.game.start_datetime()
+        def game_time(self):
+            if self.game is None or self._start_time is None:
+                return ''
+            now = datetime.datetime.now().astimezone(None)
+            secs = (self._start - datetime).total_seconds()
+            if secs > HOUR * 6:
+                return self._start.strftime('%m/%d/%y %h:%M')
+            elif secs > HOUR:
+                raw_hours = secs / 60 / 60
+                hours = int(raw_hours)
+                minutes = int((raw_hours - hours) * 60)
+                return f'{hours}h {minutes}m'
+            elif secs > MINUTE:
+                return f'{int(secs / 60)}m'
+            else:
+                return 'game stated'
+        def render(self, display, play_by_play):
+            image = Image.new("RGB", (display.width, display.height))
+            draw = ImageDraw.Draw(image)
+            draw.rectangle((0, 0, display.width, display.height), fill=BACKGROUND_COLOR)
+            home_size = large_font.get_size(self.game.home_team_abv())
+            draw.text(
+                (10, 10)
+                self.game.home_team_abv(),
+                font=large_font,
+                fill=FOREGROUND_COLOR
+            )
+            away_size = large_font.get_size(self.game.away_team_abv())
+            draw.text(
+                (display.width - away_size - 10, 10)
+                self.game.away_team_abv(),
+                font=large_font,
+                fill=FOREGROUND_COLOR
+            )
+            display.image(image)
+            display.display()
+    class PostGameState(ProtoGame):
+        def __init__(self, game, box_score, play_by_play):
+            self.game = game
+            self.box_score = box_score
+            self.play_by_play = play_by_play
+        
+        def render(self):
+            pass
+        
+    def __init__(self, game, box_score, play_by_play):
+        if game.has_started():
+            self.state = DisplayState.InGameState(game, play_by_play)
+        elif game.is_over():
+            self.state = DisplayState.PostGameState(game, box_score, play_by_play)
+        else:
+            self.state = DisplayState.PreGameState(game)
+
+    def render(self, display, game, box_score, play_by_play):
+        if self.state.ty == 'PreGame' and game.has_started():
+            self.state = DisplayState.InGameState(game, play_by_play)
+        elif self.state.ty == 'InGame' and game.is_over():
+            self.state = DisplayState.PostGameState(game, box_score, play_by_play)
+        elif !game.has_started():
+            self.state = DisplayState.PreGameState(game)
+        self.state.render(display, play_by_play)
+    
+state = None
 def render(game, box_score, play_by_play):
-    pass
+    global state
+    global display
+    if game is not None:
+        if state is None:
+            state = DisplayState(game, box_score, play_by_play)
+        state.render(display, box_score, play_by_play)
