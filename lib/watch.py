@@ -97,7 +97,7 @@ game = load_game()
 box_score = load_box_score()
 play_by_play = load_play_by_play()
 
-def watch_data_file(data_dir, cb):
+def watch_data_file(data_dir, cb, lazy_refresh):
     global game
     global box_score
     global play_by_play
@@ -116,17 +116,20 @@ def watch_data_file(data_dir, cb):
             box_score = load_box_score()
         elif 'play_by_play.json' in event.src_path:
             play_by_play = load_play_by_play()
-        cb(game, box_score, play_by_play)
+        if not lazy_refresh:
+            cb(game, box_score, play_by_play)
     
     handler.on_any_event = updated
     obs.schedule(handler, data_dir)
     obs.start()
     try:
         while True:
+            if lazy_refresh:
+                cb(game, play_by_play)
             time.sleep(60 * 3)
     finally:
         obs.stop()
         obs.join()
 
-def start(data_dir, cb):
-    watch_data_file(data_dir, cb)
+def start(data_dir, cb, lazy_refresh):
+    watch_data_file(data_dir, cb, lazy_refresh)
