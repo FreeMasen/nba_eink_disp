@@ -176,6 +176,15 @@ class DisplayState:
             else:
                 return 'game stated'
 
+        def home_record(self):
+            if self.game is None:
+                return ''
+            return f'{self.game.home.wins}-{self.game.home.losses}'
+        def away_record(self):
+            if self.game is None:
+                return ''
+            return f'{self.game.away.wins}-{self.game.away.losses}'
+
         def render(self, display, play_by_play):
             image = Image.new("RGB", (display.width, display.height))
             draw = ImageDraw.Draw(image)
@@ -193,6 +202,20 @@ class DisplayState:
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
+            draw.text(
+                (10, teams_height + 5),
+                self.home_record(),
+                font=medium_font,
+                fill=FOREGROUND_COLOR
+            )
+            (away_width, record_height) = medium_font.getsize(self.away_record())
+            draw.text(
+                (display.width - away_width - 10, teams_height + 5),
+                self.away_record(),
+                font=medium_font,
+                fill=FOREGROUND_COLOR
+            )
+            time_y = 10 + teams_height + 5 + record_height
             (time_width, _) = large_font.getsize(self.game_time())
             draw.text(
                 (display.width // 2 - time_width // 2, teams_height + 10),
