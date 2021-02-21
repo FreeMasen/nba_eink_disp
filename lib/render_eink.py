@@ -84,6 +84,8 @@ class DisplayState:
             return self.play_by_play is None and len(self.play_by_play) == 0
 
         def render(self, display, play_by_play):
+            if play_by_play is not None:
+                self.play_by_play = play_by_play
             image = Image.new("RGB", (display.width, display.height))
             draw = ImageDraw.Draw(image)
             draw.rectangle((0, 0, display.width, display.height), fill=BACKGROUND_COLOR)            
@@ -95,18 +97,18 @@ class DisplayState:
             )
             (teams_height, away_size) = large_font.getsize(self.away_team_abv())
             draw.text(
-                (display.width - away_size - 10, 10),
+                (display.width - away_size - 20, 10),
                 self.away_team_abv(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
             draw.text(
-                (10, teams_height + 10),
+                (10, teams_height + 5),
                 self.home_team_score(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            (score_height, away_width) = large_font.getsize(self.away_team_score())
+            (_score_height, away_width) = large_font.getsize(self.away_team_score())
             draw.text(
                 (display.width - away_width - 10, teams_height + 10),
                 self.away_team_score(),
