@@ -128,16 +128,15 @@ class DisplayState:
                 fill=FOREGROUND_COLOR
             )
             actions_y = teams_height + score_height + 10 + 5 + 5
-            events = self.last_event()
-            # events = ''
-            # for i in range(3, -1, -1):
-            #     if i == 0:
-            #         events = ''
-            #         break
-            #     events = self.last_few_events(i)
-            #     (events_height, _) = small_font.getsize(events)
-            #     if actions_y + events_height <= display.height:
-            #         break
+            events = self.last_few_events(3)
+            for i in range(2, -1, -1):
+                if i == 0:
+                    events = ''
+                    break
+                events = self.last_few_events(i)
+                (_, events_height) = small_font.getsize(events)
+                if actions_y + events_height <= display.height:
+                    break
             draw.text(
                 (5, actions_y),
                 events,
