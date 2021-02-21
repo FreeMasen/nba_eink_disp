@@ -81,10 +81,9 @@ class DisplayState:
             '\n'.join([p['desc'] for p in self.play_by_play[-ct:]])
 
         def has_play_by_play(self):
-            return self.play_by_play is None and len(self.play_by_play) == 0
+            return self.play_by_play is not None and len(self.play_by_play) > 0
 
         def render(self, display, play_by_play):
-            print('render', self.game, play_by_play)
             if play_by_play is not None:
                 self.play_by_play = play_by_play
             image = Image.new("RGB", (display.width, display.height))
