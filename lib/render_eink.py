@@ -63,14 +63,14 @@ class DisplayState:
             if not self.has_play_by_play():
                 return '  0'
             score = self.play_by_play[-1]['home_score']
-            return f'{score}'
+            return f'{score: >3}'
 
         def away_team_score(self):
             print(f'InGameState.away_team_score')
             if not self.has_play_by_play():
                 return '  0'
             score = self.play_by_play[-1]['away_score']
-            return f'{score}'
+            return f'{score: >3}'
         
         def clock(self):
             print(f'InGameState.clock')
@@ -103,20 +103,20 @@ class DisplayState:
             )
             (away_size, teams_height) = large_font.getsize(self.away_team_abv())
             draw.text(
-                (display.width - away_size - 20, 10),
+                (display.width - away_size - 10, 10),
                 self.away_team_abv(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
             draw.text(
-                (10, teams_height + 5),
+                (10, teams_height + 15),
                 self.home_team_score(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
             (away_width, _score_height) = large_font.getsize(self.away_team_score())
             draw.text(
-                (display.width - away_width - 10, teams_height + 10),
+                (display.width - away_width - 10, teams_height + 15),
                 self.away_team_score(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
