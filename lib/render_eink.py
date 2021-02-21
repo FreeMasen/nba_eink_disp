@@ -121,11 +121,12 @@ class DisplayState:
                 fill=FOREGROUND_COLOR
             )
             actions_y = teams_height + score_height + 30
+            events = ''
             for i in range(3, -1, -1):
                 if i == 0:
                     events = ''
                     break
-                events = self.last_few_events(3)
+                events = self.last_few_events(i)
                 (events_height, _) = small_font.getsize(events)
                 if actions_y + events_height <= display.height:
                     break
