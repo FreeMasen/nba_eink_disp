@@ -54,19 +54,21 @@ class DisplayState:
     class InGameState(ProtoGame):
         ty = 'InGame'
         def __init__(self, game, play_by_play):
-            ProtoGame.__init__(game)
+            super().__init__(game)
             self.game = game
             self.play_by_play = play_by_play
 
         def home_team_score(self):
             if not self.has_play_by_play():
                 return '  0'
-            return f'{self.play_by_play[-1]['home_score']}'
+            score = self.play_by_play[-1]['home_score']
+            return f'{score}'
 
         def away_team_score(self):
             if not self.has_play_by_play():
                 return '  0'
-            return f'{self.play_by_play[-1]['away_score']}'
+            score = self.play_by_play[-1]['away_score']
+            return f'{score}'
         
         def clock(self):
             if not self.has_play_by_play():
@@ -86,14 +88,14 @@ class DisplayState:
             draw = ImageDraw.Draw(image)
             draw.rectangle((0, 0, display.width, display.height), fill=BACKGROUND_COLOR)            
             draw.text(
-                (10, 10)
+                (10, 10),
                 self.home_team_abv(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
             (teams_height, away_size) = large_font.get_size(self.away_team_abv())
             draw.text(
-                (display.width - away_size - 10, 10)
+                (display.width - away_size - 10, 10),
                 self.away_team_abv(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
@@ -140,19 +142,20 @@ class DisplayState:
     class PreGameState(ProtoGame):
         ty = 'PreGame'
         def __init__(self, game):
-            ProtoGame.__init__(game)
+            super().__init__(game)
             self.game = game
             if game is None:
                 self._start_time = None
             else:
                 self._start_time = self.game.start_datetime()
+
         def game_time(self):
             if self.game is None or self._start_time is None:
                 return ''
             now = datetime.datetime.now().astimezone(None)
-            secs = (self._start - datetime).total_seconds()
+            secs = (self._start_time - now).total_seconds()
             if secs > HOUR * 6:
-                return self._start.strftime('%m/%d/%y %h:%M')
+                return self._start_time.strftime('%m/%d/%y %h:%M')
             elif secs > HOUR:
                 raw_hours = secs / 60 / 60
                 hours = int(raw_hours)
@@ -162,26 +165,35 @@ class DisplayState:
                 return f'{int(secs / 60)}m'
             else:
                 return 'game stated'
+
         def render(self, display, play_by_play):
             image = Image.new("RGB", (display.width, display.height))
             draw = ImageDraw.Draw(image)
             draw.rectangle((0, 0, display.width, display.height), fill=BACKGROUND_COLOR)
-            home_size = large_font.get_size(self.game.home_team_abv())
             draw.text(
-                (10, 10)
-                self.game.home_team_abv(),
+                (10, 10),
+                self.home_team_abv(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
-            away_size = large_font.get_size(self.game.away_team_abv())
+            (teams_height, away_width) = large_font.get_size(self.away_team_abv())
             draw.text(
-                (display.width - away_size - 10, 10)
-                self.game.away_team_abv(),
+                (display.width - away_width - 10, 10),
+                self.away_team_abv(),
                 font=large_font,
                 fill=FOREGROUND_COLOR
             )
+            (_, time_width) = large_font.get_size(self.game_time())
+            draw.text(
+                (display.width // 2 - time_width // 2, teams_height + 10),
+                self.game_time(),
+                font=large_font,
+                fill=FOREGROUND_COLOR
+            )
+            draw.text()
             display.image(image)
             display.display()
+
     class PostGameState(ProtoGame):
         def __init__(self, game, box_score, play_by_play):
             self.game = game
@@ -204,7 +216,7 @@ class DisplayState:
             self.state = DisplayState.InGameState(game, play_by_play)
         elif self.state.ty == 'InGame' and game.is_over():
             self.state = DisplayState.PostGameState(game, box_score, play_by_play)
-        elif !game.has_started():
+        elif not game.has_started():
             self.state = DisplayState.PreGameState(game)
         self.state.render(display, play_by_play)
     
@@ -215,4 +227,4 @@ def render(game, box_score, play_by_play):
     if game is not None:
         if state is None:
             state = DisplayState(game, box_score, play_by_play)
-        state.render(display, box_score, play_by_play)
+        state.render(display, game, box_score, play_by_play)
