@@ -125,7 +125,7 @@ def watch_data_file(data_dir, cb, lazy_refresh):
     try:
         while True:
             if lazy_refresh:
-                cb(game, play_by_play)
+                cb(game, box_score, play_by_play)
             time.sleep(60 * 3)
     finally:
         obs.stop()
