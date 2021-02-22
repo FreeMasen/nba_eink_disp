@@ -163,7 +163,7 @@ pub struct Team {
     pub loss: StringOrNumber,
     pub score: StringOrNumber,
     pub in_bonus: Option<StringOrNumber>,
-    pub timeouts_remaining: Option<u8>,
+    pub timeouts_remaining: Option<i8>,
     #[serde(alias = "linescore")]
     pub periods: Vec<LineScore>,
 }
