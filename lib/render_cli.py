@@ -1,20 +1,25 @@
-from . import util
+import typing
+
+from . import util, models
 
 
-def render(game, box_score, play_by_play):
-    print('cli.render')
-    if game is not None:
-        print(f'{game.home.abv} {game.away.abv}')
-    else:
-        print('HOM VIS')
-    if play_by_play is not None:
-        last = play_by_play[-1]
-        print(f'{last["home_score"]: >3} {last["away_score"]: >3}')
-        print(last["clock"])
-        print(last['desc'])
-    elif game is not None:
-        dur = util.format_duration(game.start_datetime())
+def render(state: models.State):
+    if state.current_game is not None:
+        print(f'{state.current_game.home_abv()} {state.current_game.away_abv()}')
+        if state.current_game.has_started():
+            print(f'{state.current_game.home_score()} {state.current_game.away_score()}')
+            print(state.current_game.last_few_events())
+        else:
+            dur = util.format_duration(state.current_game.start_datetime())
+            if dur is None:
+                print('Game started')
+            else:
+                print(dur)
+    elif state.next_game is not None:
+        dur = util.format_duration(state.next_game.start_datetime())
         if dur is None:
             print('Game started')
         else:
             print(dur)
+    elif state.last_game is not None:
+        pass

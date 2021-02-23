@@ -3,63 +3,75 @@ use chrono::{DateTime, Datelike, Local, Utc};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 pub mod action;
+pub mod box_score;
 
-pub async fn find_last_game(team_id: &str) -> Game {
+
+const TODAY_URL: &str =
+    "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json";
+
+pub async fn find_last_game(team_avb: &str) -> Option<Game> {
     let today = Local::now();
     for i in 0..5 {
         let url = url_for_date(today - chrono::Duration::days(i));
-        let day: Day = reqwest::get(&url).await.unwrap().json().await.unwrap();
+        let s = request_with_retry(&url).await?;
+        let day: Day = serde_json::from_str(&s)
+            .map_err(|e| {
+                eprintln!("Failed to deserialize Day: {}", e);
+                std::fs::write("day_err.json", &s).unwrap();
+                e
+            })
+            .ok()?;
         for game in day.games.into_iter() {
-            if game.home.id == team_id || game.away.id == team_id {
+            if game.home.tri_code == team_avb || game.away.tri_code == team_avb {
                 if game.end_time.is_some() {
-                    return game;
+                    return Some(game);
                 }
             }
         }
     }
-    panic!("Unable to find game in last 5 days");
+    eprintln!("Failed to find game over the last 5 days");
+    None
 }
 
 pub async fn find_game_today(team_abv: &str) -> Option<Game> {
     for _ in 0..5 {
-        if let Ok(res) = reqwest::get(
-            "https://cdn.nba.com/static/json/liveData/scoreboard/todaysScoreboard_00.json",
-        )
-        .await
-        {
-            let json = res.text().await.unwrap();
-            let day: Today = serde_json::from_str(&json)
-                .map_err(|e| {
-                    std::fs::write("today_err.json", &json).unwrap();
-                    e
-                })
-                .unwrap();
-            // let day = res.json::<Today>().await.unwrap();
-            for game in day.scoreboard.games.into_iter() {
-                if game.home.tri_code == team_abv || game.away.tri_code == team_abv {
-                    return Some(game);
-                }
+        let json = request_with_retry(TODAY_URL).await?;
+        let day: Today = serde_json::from_str(&json)
+            .map_err(|e| {
+                std::fs::write("today_err.json", &json).unwrap();
+                e
+            })
+            .ok()?;
+        for game in day.scoreboard.games.into_iter() {
+            if game.home.tri_code == team_abv || game.away.tri_code == team_abv {
+                return Some(game);
             }
-            return None;
         }
     }
     None
 }
 
-pub async fn find_next_game(team_id: &str) -> Game {
+pub async fn find_next_game(team_avb: &str) -> Option<Game> {
     let today = Local::now();
     for i in 1..6 {
         let url = url_for_date(today + chrono::Duration::days(i));
-        let day: Day = reqwest::get(&url).await.unwrap().json().await.unwrap();
+        let json = request_with_retry(&url).await?;
+        
+        let day: Day = serde_json::from_str(&json).map_err(|e| {
+            eprintln!("failed to deserailize next day");
+            std::fs::write("next_day.json", &json).unwrap();
+            e
+        }).ok()?;
         for game in day.games.into_iter() {
-            if game.home.id == team_id || game.away.id == team_id {
+            if game.home.tri_code == team_avb || game.away.tri_code == team_avb {
                 if game.end_time.is_none() {
-                    return game;
+                    return Some(game);
                 }
             }
         }
     }
-    panic!("Unable to find game in next 5 days");
+    eprintln!("Unable to find game in next 5 days");
+    None
 }
 
 pub async fn get_game_boxscore(game_id: &str) -> Option<String> {
@@ -67,12 +79,15 @@ pub async fn get_game_boxscore(game_id: &str) -> Option<String> {
         "https://cdn.nba.com/static/json/liveData/boxscore/boxscore_{}.json",
         game_id
     );
-    let s = reqwest::get(&url).await.unwrap().text().await.unwrap();
-    let box_score: serde_json::Value = serde_json::from_str(&s).map_err(|e| {
-        std::fs::write("box_score_err.json", s).unwrap();
-        e
-    }).ok()?;
-    Some(serde_json::to_string_pretty(&box_score).unwrap())
+    let s = request_with_retry(&url).await?;
+    let bs: serde_json::Map<String, Value> = serde_json::from_str(&s)
+        .map_err(|e| {
+            std::fs::write("box_score_err.json", s).unwrap();
+            e
+        })
+        .ok()?;
+    let bs = box_score::GameBoxScores::try_from_obj(&bs)?;
+    Some(serde_json::to_string_pretty(&bs).unwrap())
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -85,21 +100,30 @@ pub struct PlayByPlayGame {
     pub actions: Vec<serde_json::Map<String, Value>>,
 }
 
-pub async fn get_play_by_play(game_id: &str, home_team: &str, away_team: &str) -> Option<Vec<Action>> {
+pub async fn get_play_by_play(
+    game_id: &str,
+    home_team: &str,
+    away_team: &str,
+) -> Option<Vec<Action>> {
     let url = format!(
         "https://cdn.nba.com/static/json/liveData/playbyplay/playbyplay_{}.json",
         game_id
     );
-    let content = reqwest::get(&url).await.ok()?.text().await.unwrap();
-    let play_by_play: serde_json::Map<String, Value> = serde_json::from_str(&content).map_err(|e| {
-        std::fs::write("play_by_play_err.json", &content).unwrap();
-        e
-    }).ok()?;
+    let content = request_with_retry(&url).await?;
+    let play_by_play: serde_json::Map<String, Value> = serde_json::from_str(&content)
+        .map_err(|e| {
+            std::fs::write("play_by_play_err.json", &content).unwrap();
+            e
+        })
+        .ok()?;
     let game = play_by_play.get("game").unwrap().as_object().unwrap();
     let actions = game.get("actions").unwrap().as_array().unwrap().to_owned();
-    let ret = actions.into_iter().filter_map(|m| {
-        action::Action::try_from_obj(m.as_object().unwrap().to_owned(), home_team, away_team)
-    }).collect();
+    let ret = actions
+        .into_iter()
+        .filter_map(|m| {
+            action::Action::try_from_obj(m.as_object().unwrap().to_owned(), home_team, away_team)
+        })
+        .collect();
     Some(ret)
 }
 
@@ -208,6 +232,18 @@ fn url_for_date(dt: impl Datelike) -> String {
     )
 }
 
+async fn request_with_retry(url: &str) -> Option<String> {
+    for i in 0..5 {
+        if let Ok(res) = reqwest::get(url).await {
+            if let Ok(text) = res.text().await {
+                return Some(text);
+            }
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(i * 200)).await;
+    }
+    None
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Today {
@@ -254,28 +290,3 @@ pub struct GameLeader {
     #[serde(default)]
     pub assists: u8,
 }
-
-// {
-//     "actionNumber": 2,
-//     "actionType": "period",
-//     "clock": "PT12M00.00S",
-//     "description": "Period Start",
-//     "edited": "2021-02-18T01:10:24Z",
-//     "isFieldGoal": 0,
-//     "orderNumber": 20000,
-//     "period": 1,
-//     "periodType": "REGULAR",
-//     "personId": 0,
-//     "personIdsFilter": [],
-//     "possession": 0,
-//     "qualifiers": [],
-//     "scoreAway": "0",
-//     "scoreHome": "0",
-//     "side": null,
-//     "subType": "start",
-//     "timeActual": "2021-02-18T01:10:24.1Z",
-//     "x": null,
-//     "xLegacy": null,
-//     "y": null,
-//     "yLegacy": null
-//   },

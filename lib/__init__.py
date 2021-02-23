@@ -1,1 +1,1 @@
-__all__ = ['watch', 'render_cli', 'render_eink', 'util']
+__all__ = ['watch', 'render_cli', 'render_eink', 'util', 'models']

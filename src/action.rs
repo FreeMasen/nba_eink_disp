@@ -1,6 +1,4 @@
-
 use serde::{Deserialize, Serialize};
-
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 #[serde(tag = "type", rename_all = "camelCase")]
@@ -24,6 +22,8 @@ pub enum Action {
 
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ActionInfo {
+    #[serde(alias = "actionNumber")]
+    number: i64,
     clock: String,
     desc: String,
     home_score: u16,
@@ -37,12 +37,14 @@ impl Action {
         home_team: &str,
         away_team: &str,
     ) -> Option<Self> {
+        let number = value.get("actionNumber")?.as_i64()?;
         let ty = value.get("actionType")?.as_str()?;
         let quarter = value.get("period")?.as_u64()?;
         let clock = duration_to_clock(value.get("clock")?.as_str()?)?;
         let home_score: u16 = value.get("scoreHome")?.as_str()?.parse().ok()?;
         let away_score: u16 = value.get("scoreAway")?.as_str()?.parse().ok()?;
         let mut inner = ActionInfo {
+            number,
             quarter: quarter as u8,
             clock: clock.to_string(),
             home_score,
