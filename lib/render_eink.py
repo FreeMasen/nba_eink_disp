@@ -89,10 +89,10 @@ def _render_current(display, game: models.Game):
     display.image(image)
     display.display()
 
-_render_next(game: models.Game):
+def _render_next(game: models.Game):
     pass
 
-_render_last(game: models.Game):
+def _render_last(game: models.Game):
     pass
 
 def _render_unknown(display):
