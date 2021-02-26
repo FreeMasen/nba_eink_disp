@@ -190,14 +190,14 @@ class Game:
         if len(self.play_by_play) > 0:
             return self.play_by_play[-1].home_score
         if self.home is None:
-            return 0
+            return '0'
         return self.home.score
 
     def away_score(self) -> int:
         if len(self.play_by_play) > 0:
             return self.play_by_play[-1].away_score
         if self.away is None:
-            return 0
+            return '0'
         return self.away.score
 
     def away_abv(self) -> str:
