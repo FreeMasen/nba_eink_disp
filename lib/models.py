@@ -114,6 +114,7 @@ class BoxScore:
 
 class Game:
     def __init__(self, d: dict, raw_play_by_play: List[dict] = list(), box_score: dict = dict()):
+        self._dirty = True
         self.id = d.get('id', 'UNKNOWN_GAME_ID')
         _start_time = d.get('startTime', None)
         if _start_time is not None:
@@ -157,9 +158,15 @@ class Game:
             if game.end_time is None:
                 end_str = game.get('endTime')
                 if end_str is not None:
+                    end_time = util.parse_datetime(end_str)
+                    self._dirty = self._dirty or self.end_time != end_time
                     self.end_time = util.parse_datetime(end_str)
-            self.clock = game.get('clock', self.clock)
-            self.period = game.get('period', self.period)
+            clock = game.get('clock', self.clock)
+            self._dirty = self.clock != clock
+            self.clock = self._dirty or clock
+            period = game.get('period', self.period)
+            self._dirty = self._dirty or self.period != period
+            self.period = period
         if raw_play_by_play is not None:
             self.update_play_by_play(raw_play_by_play)
 
@@ -167,6 +174,7 @@ class Game:
         for entry in raw_play_by_play:
             n = entry.get('number', -1)
             if n > self._last_play_by_play:
+                self._dirty = True
                 self._last_play_by_play = n
                 self.play_by_play.append(Play(entry))
 
@@ -220,6 +228,10 @@ class Game:
             return ''
         return '\n'.join([p.desc for p in self.play_by_play[-3:]])
 
+    def dirty(self) -> bool:
+        ret = self._dirty
+        self._dirty = False
+        return ret
 
 class Play:
     def __init__(self, d):

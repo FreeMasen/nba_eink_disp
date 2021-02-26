@@ -5,6 +5,8 @@ from . import util, models
 
 def render(state: models.State):
     if state.current_game is not None:
+        if not state.current_game.dirty():
+            return
         print(f'{state.current_game.home_abv()} {state.current_game.away_abv()}')
         if state.current_game.has_started():
             print(f'{state.current_game.home_score()} {state.current_game.away_score()}')
