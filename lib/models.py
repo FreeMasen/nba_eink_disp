@@ -218,7 +218,7 @@ class Game:
     def last_few_events(self) -> str:
         if len(self.play_by_play) <= 0:
             return ''
-        return '\n'.join(self.play_by_play[-3:])
+        return '\n'.join([p.desc for p in self.play_by_play[-3:]])
 
 
 class Play:
@@ -260,9 +260,10 @@ class State:
         self.next_game = Game(next)
 
     def update_last(self, last: dict, box_score: dict):
-        if self.last_game is None and last is not None:
-            self.last_game = Game(last, box_score=box_score)
-        elif self.last_game.id != last.get('id', 'NEXT_GAME_ID'):
-            self.last_game = Game(last, box_score=box_score)
-        else:
-            self.last_game.update_box_score(box_score)
+        if self.last_game is None:
+            if last is None:
+                self.last_game = Game(last, box_score=box_score)
+            elif self.last_game.id != last.get('id', 'NEXT_GAME_ID'):
+                self.last_game = Game(last, box_score=box_score)
+            else:
+                self.last_game.update_box_score(box_score)
