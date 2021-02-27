@@ -139,9 +139,11 @@ def tick():
     global display
     if state is not None:
         if state.current_game is not None:
+            print('minutes_since_end', state.current_game.minutes_since_end())
             if state.current_game.minutes_since_end() > 30:
                 _render_last(display, state.current_game)
                 return
+            print('minutes_until_start', state.current_game.minutes_until_start())
             if state.current_game.minutes_until_start() < 60 * 3:
                 _render_next(display, state.current_game)
                 return
