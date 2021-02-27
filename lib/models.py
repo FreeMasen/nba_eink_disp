@@ -119,6 +119,7 @@ class Game:
     def __init__(self, d: dict, raw_play_by_play: List[dict] = list(), box_score: dict = dict()):
         self._dirty = True
         self._bs_home = True
+        d = d or dict()
         self.id = d.get('id', 'UNKNOWN_GAME_ID')
         _start_time = d.get('startTime', None)
         if _start_time is not None:
