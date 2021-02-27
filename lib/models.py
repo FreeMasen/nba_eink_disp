@@ -68,6 +68,9 @@ class BoxScore:
         self.def_rebounds = BoxScoreEntry(d.get('defRebounds'))
         self._current_value = 'Assists'
 
+    def len(self):
+        return 12
+
     def next(self) -> (str, BoxScoreEntry):
         '''
         Returns the name and BoxScoreEntry for each box score value captured
@@ -115,6 +118,7 @@ class BoxScore:
 class Game:
     def __init__(self, d: dict, raw_play_by_play: List[dict] = list(), box_score: dict = dict()):
         self._dirty = True
+        self._bs_home = True
         self.id = d.get('id', 'UNKNOWN_GAME_ID')
         _start_time = d.get('startTime', None)
         if _start_time is not None:
@@ -133,12 +137,19 @@ class Game:
         _home = d.get("home", None)
         if isinstance(_home, dict):
             self.home = Team(_home)
+            _bs = (box_score or dict()).get('home', dict()).get('boxScore', None)
+            print(_bs)
+            if _bs is not None:
+                self.home.update_box_score(_bs)
         else:
             self.home = None
 
         _away = d.get("away", None)
         if isinstance(_away, dict):
             self.away = Team(_away)
+            _bs = (box_score or dict()).get('away', dict()).get('boxScore', None)
+            if _bs is not None:
+                self.away.update_box_score(_bs)
         else:
             self.away = None
 
@@ -211,8 +222,11 @@ class Game:
         return self.start_time
 
     def has_started(self) -> bool:
+        self.minutes_until_start() <= 0
+
+    def minutes_until_start(self) -> int:
         now = datetime.datetime.now().astimezone(None)
-        return (self.start_datetime() - now).total_seconds() <= 0
+        return (self.start_datetime() - now).total_seconds()
 
     def is_over(self) -> bool:
         return self.end_time is not None
@@ -227,6 +241,17 @@ class Game:
         if len(self.play_by_play) <= 0:
             return ''
         return '\n'.join([p.desc for p in self.play_by_play[-3:]])
+    def next_box(self) -> (str, str, BoxScoreEntry):
+        team = self.home
+        abv = self.home_abv()
+        if not self._bs_home:
+            team = self.away
+            abv = self.away_abv()
+        self._bs_home = not self._bs_home
+        if team is None or team.box_score is None:
+            return ''
+        (ty, bs) = team.box_score.next()
+        return (abv, ty, bs)
 
     def dirty(self) -> bool:
         ret = self._dirty
@@ -255,10 +280,16 @@ class State:
         if current_game is not None:
             self.current_game = Game(
                 current_game, raw_play_by_play=play_by_play)
+        else:
+            self.current_game = None
         if next_game is not None:
             self.next_game = Game(next_game)
+        else:
+            self.next_game = None
         if last_game is not None:
             self.last_game = Game(last_game, box_score=box_score)
+        else:
+            self.last_game = None
 
     def update_current(self, game: Optional[dict], play_by_play: Optional[List[dict]]):
         if self.current_game is None and game is None:

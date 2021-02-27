@@ -1,5 +1,6 @@
 import os
 import datetime
+import time
 import digitalio
 import busio
 import board
@@ -39,11 +40,15 @@ display.rotation = 1
 
 state = None
 
-def _render_current(display, game: models.Game):
+def _gen_image_draw(display) -> (Image, Image.Draw):
     image = Image.new("RGB", (display.width, display.height))
     draw = ImageDraw.Draw(image)
     draw.rectangle((0, 0, display.width, display.height),
                     fill=BACKGROUND_COLOR)
+    return (image, draw)
+
+def _render_current(display, game: models.Game):
+    (image, draw) = _gen_image_draw()
     draw.text(
         (10, 10),
         game.home_abv(),
@@ -90,16 +95,19 @@ def _render_current(display, game: models.Game):
     display.display()
 
 def _render_next(game: models.Game):
-    pass
+    (image, draw) = _gen_image_draw()
+    
+    display.image(image)
+    display.display()
 
 def _render_last(game: models.Game):
-    pass
+    (image, draw) = _gen_image_draw()
+    
+    display.image(image)
+    display.display()
 
 def _render_unknown(display):
-    image = Image.new("RGB", (display.width, display.height))
-    draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, display.width, display.height),
-                    fill=BACKGROUND_COLOR)
+    (image, draw) = _gen_image_draw()
     message = 'It must be the off season...'
     (width, height) = large_font.getsize(message)
     
@@ -116,6 +124,8 @@ def render(st: models.State):
     global display
     global state
     state = st
+
+while True:
     if state is not None:
         if state.current_game is not None:
             _render_current(display, state.current_game)
@@ -128,3 +138,4 @@ def render(st: models.State):
                 _render_last(display, state.last_game)
                 return
     _render_unknown(display)
+    time.sleep(1)

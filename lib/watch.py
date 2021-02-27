@@ -17,7 +17,10 @@ def load_next_game(data_dir: str):
     return load_json(data_dir, 'next_game.json', 'next game')
 
 def load_todays_game(data_dir: str):
-    return load_json(data_dir, 'today.json', 'today')
+    today = load_json(data_dir, 'today.json', 'today')
+    if len(today) == 0:
+        return None
+    return today
 
 def load_box_score(data_dir: str):
     return load_json(data_dir, 'box_score.json', 'box_score')
@@ -42,7 +45,6 @@ def watch_data_file(data_dir: str, cb: Callback):
         load_last_game(data_dir),
         load_box_score(data_dir)
     )
-    cb(state)
     obs = Observer()
     handler = PatternMatchingEventHandler(['*.json'], None, False, True)
 
@@ -72,6 +74,7 @@ def watch_data_file(data_dir: str, cb: Callback):
     obs.start()
     try:
         while True:
+            cb(state)
             time.sleep(60)
     finally:
         obs.stop()
