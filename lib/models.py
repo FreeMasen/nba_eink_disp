@@ -138,7 +138,6 @@ class Game:
         if isinstance(_home, dict):
             self.home = Team(_home)
             _bs = (box_score or dict()).get('home', dict()).get('boxScore', None)
-            print(_bs)
             if _bs is not None:
                 self.home.update_box_score(_bs)
         else:

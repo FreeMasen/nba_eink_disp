@@ -49,6 +49,7 @@ def _gen_image_draw(display):
     return (image, draw)
 
 def _render_current(display, game: models.Game):
+    print('_render_current')
     (image, draw) = _gen_image_draw(display)
     draw.text(
         (10, 10),
@@ -96,18 +97,21 @@ def _render_current(display, game: models.Game):
     display.display()
 
 def _render_next(game: models.Game):
+    print('_render_next')
     (image, draw) = _gen_image_draw(display)
     
     display.image(image)
     display.display()
 
 def _render_last(game: models.Game):
+    print('render_last')
     (image, draw) = _gen_image_draw(display)
     
     display.image(image)
     display.display()
 
 def _render_unknown(display):
+    print('_render_unknown')
     (image, draw) = _gen_image_draw(display)
     message = 'It must be the off season...'
     (width, height) = large_font.getsize(message)
