@@ -38,6 +38,7 @@ display = Adafruit_SSD1675(
 display.fill(Adafruit_EPD.WHITE)
 display.rotation = 1
 
+last_update = datetime.datetime(1970, 1, 1)
 state = None
 
 def _gen_image_draw(display) -> (Image, Image.Draw):
@@ -123,9 +124,13 @@ def _render_unknown(display):
 def render(st: models.State):
     global display
     global state
+    global last_update
     state = st
+    if (datetime.datetime.now() - last_update).total_seconds() > 60:
+        tick()
+        last_update = datetime.datetime.now()
 
-while True:
+def tick():
     if state is not None:
         if state.current_game is not None:
             _render_current(display, state.current_game)
