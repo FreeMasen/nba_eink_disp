@@ -143,12 +143,14 @@ def tick():
             if state.current_game.minutes_since_end() > 30:
                 _render_last(display, state.current_game)
                 return
-            print('minutes_until_start', state.current_game.minutes_until_start())
-            if state.current_game.minutes_until_start() < 60 * 3:
+            minutes_until_start = state.current_game.minutes_until_start()
+            print('minutes_until_start', minutes_until_start)
+            if minutes_until_start in range(60 * 3):
                 _render_next(display, state.current_game)
                 return
-            _render_current(display, state.current_game)
-            return
+            if minutes_until_start <= 0:
+                _render_current(display, state.current_game)
+                return
         if state.last_game is not None:
             _render_last(display, state.last_game)
             return
