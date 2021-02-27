@@ -131,16 +131,23 @@ def render(st: models.State):
         last_update = datetime.datetime.now()
 
 def tick():
+    global state
+    global display
     if state is not None:
         if state.current_game is not None:
+            if state.current_game.minutes_since_end() > 30:
+                _render_last(display, state.current_game)
+                return
+            if state.current_game.minutes_until_start() < 60 * 3:
+                _render_next(display, state.current_game)
+                return
             _render_current(display, state.current_game)
             return
-        elif state.current_game is None or state.current_game.minutes_since_end() > 60 * 6:
-            if state.next_game is not None:
-                _render_next(display, state.next_game)
-                return
-            if state.next_game is not None:
-                _render_last(display, state.last_game)
-                return
+        if state.last_game is not None:
+            _render_last(display, state.last_game)
+            return
+        if state.next_game is not None:
+            _render_next(display, state.next_game)
+            return
     _render_unknown(display)
     time.sleep(1)
