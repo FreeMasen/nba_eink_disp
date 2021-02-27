@@ -41,7 +41,7 @@ display.rotation = 1
 last_update = datetime.datetime(1970, 1, 1)
 state = None
 
-def _gen_image_draw(display) -> (Image, Image.Draw):
+def _gen_image_draw(display):
     image = Image.new("RGB", (display.width, display.height))
     draw = ImageDraw.Draw(image)
     draw.rectangle((0, 0, display.width, display.height),
