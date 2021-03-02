@@ -6,6 +6,7 @@ from . import util, models
 state = None
 last_update = datetime.datetime(1970, 1, 1)
 
+
 def render(st: models.State):
     global state
     global last_update
@@ -13,6 +14,7 @@ def render(st: models.State):
     if (datetime.datetime.now() - last_update).total_seconds() > 60:
         tick()
         last_update = datetime.datetime.now()
+
 
 def tick():
     global state
@@ -22,7 +24,8 @@ def tick():
                 return
             print(f'{state.current_game.home_abv()} {state.current_game.away_abv()}')
             if state.current_game.has_started():
-                print(f'{state.current_game.home_score()} {state.current_game.away_score()}')
+                print(
+                    f'{state.current_game.home_score()} {state.current_game.away_score()}')
                 print(state.current_game.last_few_events())
             else:
                 dur = util.format_duration(state.current_game.start_datetime())
@@ -45,5 +48,3 @@ def tick():
                 print('Game started')
             else:
                 print(dur)
-
-

@@ -18,7 +18,7 @@ def load_next_game(data_dir: str):
 
 def load_todays_game(data_dir: str):
     today = load_json(data_dir, 'today.json', 'today')
-    if len(today) == 0:
+    if today is None or len(today) == 0:
         return None
     return today
 

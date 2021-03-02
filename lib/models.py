@@ -53,6 +53,21 @@ class BoxScoreEntry:
 
 
 class BoxScore:
+    values = [
+        'Assists',
+        'Blocks',
+        'Fouled',
+        'Fouler',
+        'Steals',
+        'Turnovers',
+        'Points',
+        'Paint Points',
+        'Threes',
+        'Rebounds',
+        'Off Rebounds',
+        'Def Rebounds',
+    ]
+
     def __init__(self, d: dict):
         self.assists = BoxScoreEntry(d.get('assist'))
         self.blocks = BoxScoreEntry(d.get('blocks'))
@@ -66,7 +81,7 @@ class BoxScore:
         self.rebounds = BoxScoreEntry(d.get('rebounds'))
         self.off_rebounds = BoxScoreEntry(d.get('offRebounds'))
         self.def_rebounds = BoxScoreEntry(d.get('defRebounds'))
-        self._current_value = 'Assists'
+        self._current_value = 0
 
     def len(self):
         return 12
@@ -75,43 +90,34 @@ class BoxScore:
         '''
         Returns the name and BoxScoreEntry for each box score value captured
         '''
-        name = self._current_value
-        if self._current_value == 'Assists':
-            self._current_value = 'Blocks'
+        name = BoxScore.values[self._current_value]
+        if self._current_value == 0:
             ent = self.assists
-        if self._current_value == 'Blocks':
-            self._current_value = 'Fouled'
+        elif self._current_value == 1:
             ent = self.blocks
-        if self._current_value == 'Fouled':
-            self._current_value = 'Fouler'
+        elif self._current_value == 2:
             ent = self.fouled
-        if self._current_value == 'Fouler':
-            self._current_value = 'Steals'
+        elif self._current_value == 3:
             ent = self.fouler
-        if self._current_value == 'Steals':
-            self._current_value = 'Turnovers'
+        elif self._current_value == 4:
             ent = self.steals
-        if self._current_value == 'Turnovers':
-            self._current_value = 'Points'
+        elif self._current_value == 5:
             ent = self.turnovers
-        if self._current_value == 'Points':
-            self._current_value = 'Paint Points'
+        elif self._current_value == 6:
             ent = self.points
-        if self._current_value == 'Paint Points':
-            self._current_value = 'Threes'
+        elif self._current_value == 7:
             ent = self.paint_points
-        if self._current_value == 'Threes':
-            self._current_value = 'Rebounds'
+        elif self._current_value == 8:
             ent = self.threes
-        if self._current_value == 'Rebounds':
-            self._current_value = 'Off Rebounds'
+        elif self._current_value == 9:
             ent = self.rebounds
-        if self._current_value == 'Off Rebounds':
-            self._current_value = 'Def Rebounds'
+        elif self._current_value == 10:
             ent = self.off_rebounds
         else:
-            self._current_value = 'Assists'
             ent = self.def_rebounds
+        self._current_value += 1
+        if self._current_value >= len(BoxScore.values):
+            self._current_value = 0
         return (name, ent)
 
 
@@ -138,7 +144,8 @@ class Game:
         _home = d.get("home", None)
         if isinstance(_home, dict):
             self.home = Team(_home)
-            _bs = (box_score or dict()).get('home', dict()).get('boxScore', None)
+            _bs = (box_score or dict()).get(
+                'home', dict()).get('boxScore', None)
             if _bs is not None:
                 self.home.update_box_score(_bs)
         else:
@@ -147,7 +154,8 @@ class Game:
         _away = d.get("away", None)
         if isinstance(_away, dict):
             self.away = Team(_away)
-            _bs = (box_score or dict()).get('away', dict()).get('boxScore', None)
+            _bs = (box_score or dict()).get(
+                'away', dict()).get('boxScore', None)
             if _bs is not None:
                 self.away.update_box_score(_bs)
         else:
@@ -241,6 +249,7 @@ class Game:
         if len(self.play_by_play) <= 0:
             return ''
         return '\n'.join([p.desc for p in self.play_by_play[-3:]])
+
     def next_box(self) -> (str, str, BoxScoreEntry):
         team = self.home
         abv = self.home_abv()
@@ -249,7 +258,7 @@ class Game:
             abv = self.away_abv()
         self._bs_home = not self._bs_home
         if team is None or team.box_score is None:
-            return ''
+            return ('', '', None)
         (ty, bs) = team.box_score.next()
         return (abv, ty, bs)
 
@@ -257,6 +266,7 @@ class Game:
         ret = self._dirty
         self._dirty = False
         return ret
+
 
 class Play:
     def __init__(self, d):

@@ -11,8 +11,10 @@ from . import util, models
 
 MINUTE = 60
 HOUR = 60 * MINUTE
-BACKGROUND_COLOR = (255, 255, 255)
-FOREGROUND_COLOR = (0, 0, 0)
+BACKGROUND_COLOR = 255
+FOREGROUND_COLOR = 1
+BORDER_WIDTH = 5
+
 try:
     font_path = os.environ['NBA_EINK_FONT']
 except:
@@ -39,47 +41,25 @@ display.fill(Adafruit_EPD.WHITE)
 display.rotation = 1
 
 last_update = datetime.datetime(1970, 1, 1)
+updating = False
 state = None
 
 def _gen_image_draw(display):
-    image = Image.new("RGB", (display.width, display.height))
+    image = Image.new("L", (display.width, display.height))
     draw = ImageDraw.Draw(image)
-    draw.rectangle((0, 0, display.width, display.height),
-                    fill=BACKGROUND_COLOR)
+    draw.rectangle((0, 0, display.width, display.height), fill=BACKGROUND_COLOR)
     return (image, draw)
 
 def _render_current(display, game: models.Game):
     print('_render_current')
+    if not game.dirty():
+        return
     (image, draw) = _gen_image_draw(display)
-    draw.text(
-        (10, 10),
-        game.home_abv(),
-        font=large_font,
-        fill=FOREGROUND_COLOR
-    )
-    (away_size, teams_height) = large_font.getsize(game.away_abv())
-    draw.text(
-        (display.width - away_size - 10, 10),
-        game.away_abv(),
-        font=large_font,
-        fill=FOREGROUND_COLOR
-    )
-    draw.text(
-        (10, teams_height + 15),
-        game.home_score(),
-        font=large_font,
-        fill=FOREGROUND_COLOR
-    )
-    (away_width, score_height) = large_font.getsize(game.away_score())
-    draw.text(
-        (display.width - away_width - 10, teams_height + 15),
-        game.away_score(),
-        font=large_font,
-        fill=FOREGROUND_COLOR
-    )
+    teams_height = _render_teams(draw, game)
+    score_height = _render_score(draw, game, teams_height)
     (clock_width, _) = small_font.getsize(game.clock or '00:00')
     draw.text(
-        ((display.width // 2) - (clock_width // 2), 5),
+        ((display.width // 2) - (clock_width // 2), BORDER_WIDTH // 2),
         game.clock or '00:00',
         font=small_font,
         fill=FOREGROUND_COLOR
@@ -96,19 +76,101 @@ def _render_current(display, game: models.Game):
     display.image(image)
     display.display()
 
-def _render_next(game: models.Game):
+def _render_next(display, game: models.Game):
     print('_render_next')
     (image, draw) = _gen_image_draw(display)
-    
+    teams_height = _render_teams(draw, game)
+    render_centered(
+        draw, medium_font, util.format_duration(game.start_time), display.width, teams_height + BORDER_WIDTH * 2
+    )
     display.image(image)
     display.display()
 
-def _render_last(game: models.Game):
+def _render_last(display, game: models.Game):
     print('render_last')
     (image, draw) = _gen_image_draw(display)
-    
+    teams_height = _render_teams(draw, game)
+    score_height = _render_score(draw, game, teams_height)
+    (team, cat, bs) = game.next_box()
+    if bs is None:
+        print('no box score...')
+        display.image(image)
+        display.display()
+        return
+    stat_top = teams_height + score_height + (BORDER_WIDTH * 3)
+    render_text = render_left_aligned
+    if (team or '') == game.away_abv():
+        render_text = render_right_aligned
+
+    stat_height = render_text(draw, large_font, cat or '???', display.width, stat_top)
+    value_top = BORDER_WIDTH + stat_top + stat_height
+    name_value = f'{bs.name}: {bs.value}'
+    render_text(draw, large_font, name_value, display.width, value_top)
     display.image(image)
     display.display()
+
+def _render_teams(draw, game):
+    draw.text(
+        (BORDER_WIDTH, BORDER_WIDTH),
+        game.home_abv(),
+        font=large_font,
+        fill=FOREGROUND_COLOR
+    )
+    (away_size, teams_height) = large_font.getsize(game.away_abv())
+    draw.text(
+        (display.width - away_size - BORDER_WIDTH, BORDER_WIDTH),
+        game.away_abv(),
+        font=large_font,
+        fill=FOREGROUND_COLOR
+    )
+    return teams_height
+
+def _render_score(draw, game, teams_height):
+    draw.text(
+        (BORDER_WIDTH, teams_height + BORDER_WIDTH * 2),
+        game.home_score(),
+        font=large_font,
+        fill=FOREGROUND_COLOR
+    )
+    (away_width, score_height) = large_font.getsize(game.away_score())
+    draw.text(
+        (display.width - away_width - BORDER_WIDTH, teams_height + BORDER_WIDTH * 2),
+        game.away_score(),
+        font=large_font,
+        fill=FOREGROUND_COLOR
+    )
+    return score_height
+
+def render_right_aligned(draw, font, text, display_width, y):
+    (w, h) = font.getsize(text)
+    xy = (display_width - w - BORDER_WIDTH, y)
+    draw.text(
+        xy,
+        text,
+        font=font,
+        fill=FOREGROUND_COLOR
+    )
+    return h
+
+def render_centered(draw, font, text, display_width, y):
+    (w, h) = font.getsize(text)
+    draw.text(
+        ((display.width // 2) - (w // 2), y),
+        text,
+        font=font,
+        fill=FOREGROUND_COLOR
+    )
+    return h
+
+def render_left_aligned(draw, font, text, display_width, y):
+    (_, h) = font.getsize(text)
+    draw.text(
+        (BORDER_WIDTH, y),
+        text,
+        font=font,
+        fill=FOREGROUND_COLOR
+    )
+    return h
 
 def _render_unknown(display):
     print('_render_unknown')
@@ -129,9 +191,15 @@ def render(st: models.State):
     global display
     global state
     global last_update
+    global updating
     state = st
-    if (datetime.datetime.now() - last_update).total_seconds() > 60:
+    now = datetime.datetime.now()
+    secs = (now - last_update).total_seconds()
+    print('eink_render', last_update, secs)
+    if secs > 60 and not updating:
+        updating = True
         tick()
+        updating = False
         last_update = datetime.datetime.now()
 
 def tick():
