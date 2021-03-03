@@ -57,12 +57,19 @@ def _render_current(display, game: models.Game):
     (image, draw) = _gen_image_draw(display)
     teams_height = _render_teams(draw, game, display.width)
     score_height = _render_score(draw, game, teams_height, display.width)
+    period_height = render_centered(
+        draw,
+        small_font,
+        game.period or 'Q?',
+        display.width,
+        BORDER_WIDTH // 2
+    )
     render_centered(
         draw,
         small_font,
         game.clock or '00:00',
         display.width,
-        BORDER_WIDTH // 2
+        BORDER_WIDTH + period_height
     )
     actions_y = (teams_height + BORDER_WIDTH) + (score_height + BORDER_WIDTH) + BORDER_WIDTH
     events = game.last_few_events()
