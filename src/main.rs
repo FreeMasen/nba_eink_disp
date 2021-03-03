@@ -25,7 +25,7 @@ async fn main() {
     loop {
         let today = find_game_today(&args.team).await;
         if let Some(today) = today {
-            
+            log::debug!("Todays game: {:?}\n{:?} v {:?}", today.id, today.home.tri_code, today.away.tri_code);
             if let Some(play) = get_play_by_play(
                 &today.id.to_string(),
                 &today.home.tri_code,
