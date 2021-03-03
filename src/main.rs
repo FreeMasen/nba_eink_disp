@@ -33,36 +33,46 @@ async fn main() {
             )
             .await
             {
+                log::debug!("got {} play_by_play events", play.len());
                 if let Some(prev) = last_play.as_mut() {
                     if play != *prev {
+                        log::debug!("updating play_by_play.json");
                         let json = serde_json::to_string_pretty(&play).unwrap();
                         std::fs::write("data/play_by_play.json", &json).unwrap();
                         *prev = play;
                     }
                 } else {
+                    log::debug!("updating play_by_play.json");
                     let json = serde_json::to_string_pretty(&play).unwrap();
                     std::fs::write("data/play_by_play.json", &json).unwrap();
                     last_play = Some(play);
                 }
+            } else {
+                log::warn!("No play by play found");
             }
             if let Some(prev) = last_today.as_mut() {
                 if today != *prev {
+                    log::debug!("updating today.json");
                     let json = serde_json::to_string_pretty(&today).unwrap();
                     std::fs::write(args.out_dir.join("today.json"), &json).unwrap();
                     *prev = today;
                 }
             } else {
+                log::debug!("updating today.json");
                 let json = serde_json::to_string_pretty(&today).unwrap();
                 std::fs::write(args.out_dir.join("today.json"), &json).unwrap();
                 last_today = Some(today);
             }
         } else {
+            log::warn!("no today game");
             std::fs::write(args.out_dir.join("today.json"), "{}").unwrap();
         }
         if let Some(last) = find_last_game(&args.team).await {
             if let Some(box_score) = get_game_boxscore(&last.id.to_string()).await {
+                log::debug!("updating box score");
                 std::fs::write(args.out_dir.join("box_score.json"), &box_score).unwrap();
             } else {
+                log::debug!("no box score found");
                 std::fs::write(args.out_dir.join("box_score.json"), "{}").unwrap();
             }
             let json = serde_json::to_string_pretty(&last).unwrap();
@@ -71,9 +81,11 @@ async fn main() {
             std::fs::write(args.out_dir.join("last_game.json"), "{}").unwrap();
         }
         if let Some(next) = find_next_game(&args.team).await {
+            log::debug!("updating next game info");
             let json = serde_json::to_string_pretty(&next).unwrap();
             std::fs::write(args.out_dir.join("next_game.json"), &json).unwrap();
         } else {
+            log::warn!("no next game found");
             std::fs::write(args.out_dir.join("next_game.json"), "{}").unwrap();
         }
         tokio::time::sleep(Duration::from_secs(args.seconds)).await;
