@@ -38,7 +38,7 @@ display = Adafruit_SSD1675(
     dc_pin=dc, sramcs_pin=srcs,
     rst_pin=rst, busy_pin=busy)
 display.fill(Adafruit_EPD.WHITE)
-display.rotation = 1
+display.rotation = 3
 
 last_update = datetime.datetime(1970, 1, 1)
 updating = False
