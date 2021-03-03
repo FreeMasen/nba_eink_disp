@@ -148,7 +148,7 @@ impl Action {
     }
 }
 
-fn duration_to_clock(d: &str) -> Option<String> {
+pub fn duration_to_clock(d: &str) -> Option<String> {
     let mut chars = d.chars();
     let p = chars.next()?;
     if p != 'P' {
