@@ -44,7 +44,7 @@ pub async fn find_game_today(team_abv: &str) -> Option<Game> {
             .ok()?;
         for mut game in day.scoreboard.games.into_iter() {
             if game.home.tri_code == team_abv || game.away.tri_code == team_abv {
-                game.clock = action::duration_to_clock(&game.clock).unwrap();
+                game.clock = action::duration_to_clock(&game.clock)?;
                 return Some(game);
             }
         }
