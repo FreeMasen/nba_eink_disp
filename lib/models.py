@@ -262,6 +262,14 @@ class Game:
             return ('', '', None)
         (ty, bs) = team.box_score.next()
         return (abv, ty, bs)
+    def get_period(self) -> str:
+        if self.period is not None:
+            return f'Q{self.period}'
+        if self.play_by_play is not None:
+            for play in reversed(self.play_by_play):
+                if play.quarter is not None:
+                    return f'Q{play.quarter}'
+        return 'Q?'
 
     def dirty(self) -> bool:
         ret = self._dirty

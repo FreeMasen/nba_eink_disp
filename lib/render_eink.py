@@ -60,7 +60,7 @@ def _render_current(display, game: models.Game):
     period_height = render_centered(
         draw,
         small_font,
-        game.period or 'Q?',
+        game.get_period(),
         display.width,
         BORDER_WIDTH // 2
     )
