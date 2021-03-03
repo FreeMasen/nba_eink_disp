@@ -16,7 +16,7 @@ pub async fn find_last_game(team_avb: &str) -> Option<Game> {
         let s = request_with_retry(&url).await?;
         let day: Day = serde_json::from_str(&s)
             .map_err(|e| {
-                eprintln!("Failed to deserialize Day: {}", e);
+                log::error!("Failed to deserialize Day: {}", e);
                 std::fs::write("day_err.json", &s).unwrap();
                 e
             })
@@ -38,17 +38,23 @@ pub async fn find_game_today(team_abv: &str) -> Option<Game> {
         let json = request_with_retry(TODAY_URL).await?;
         let day: Today = serde_json::from_str(&json)
             .map_err(|e| {
+                log::error!("failed to parse today, writing debug output");
                 std::fs::write("today_err.json", &json).unwrap();
                 e
             })
             .ok()?;
         for mut game in day.scoreboard.games.into_iter() {
             if game.home.tri_code == team_abv || game.away.tri_code == team_abv {
-                game.clock = action::duration_to_clock(&game.clock)?;
+                if let Some(new_clock) = action::duration_to_clock(&game.clock) {
+                    game.clock = new_clock;
+                } else {
+                    log::warn!("Failed to parse clock: {}", game.clock);
+                }
                 return Some(game);
             }
         }
     }
+    log::warn!("No game for teams {} in today", team_abv);
     None
 }
 
@@ -59,7 +65,7 @@ pub async fn find_next_game(team_avb: &str) -> Option<Game> {
         let json = request_with_retry(&url).await?;
         
         let day: Day = serde_json::from_str(&json).map_err(|e| {
-            eprintln!("failed to deserailize next day");
+            log::error!("failed to deserailize next day");
             std::fs::write("next_day.json", &json).unwrap();
             e
         }).ok()?;
@@ -71,7 +77,7 @@ pub async fn find_next_game(team_avb: &str) -> Option<Game> {
             }
         }
     }
-    eprintln!("Unable to find game in next 5 days");
+    log::error!("Unable to find game in next 5 days");
     None
 }
 
@@ -83,6 +89,7 @@ pub async fn get_game_boxscore(game_id: &str) -> Option<String> {
     let s = request_with_retry(&url).await?;
     let bs: serde_json::Map<String, Value> = serde_json::from_str(&s)
         .map_err(|e| {
+            log::error!("failed to parse box score json: {}", e);
             std::fs::write("box_score_err.json", s).unwrap();
             e
         })
@@ -113,6 +120,7 @@ pub async fn get_play_by_play(
     let content = request_with_retry(&url).await?;
     let play_by_play: serde_json::Map<String, Value> = serde_json::from_str(&content)
         .map_err(|e| {
+            log::error!("failed to parse play by play json: {}", e);
             std::fs::write("play_by_play_err.json", &content).unwrap();
             e
         })
@@ -235,10 +243,12 @@ fn url_for_date(dt: impl Datelike) -> String {
 
 async fn request_with_retry(url: &str) -> Option<String> {
     for i in 0..5 {
-        if let Ok(res) = reqwest::get(url).await {
-            if let Ok(text) = res.text().await {
-                return Some(text);
-            }
+        match reqwest::get(url).await {
+            Ok(res) => match res.text().await {
+                Ok(text) => return Some(text),
+                Err(e) => log::error!("({}) failed to get text from request to {}: {}", i, url, e),
+            },
+            Err(e) => log::error!("({}) failed to make request to {}: {}", i, url, e)
         }
         tokio::time::sleep(std::time::Duration::from_millis(i * 200)).await;
     }

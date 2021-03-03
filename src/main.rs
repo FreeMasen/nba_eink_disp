@@ -16,7 +16,7 @@ struct Args {
 #[tokio::main]
 async fn main() {
     let args = Args::from_args();
-
+    pretty_env_logger::try_init().ok();
     let mut last_today = None;
     let mut last_play = None;
     if !args.out_dir.exists() {
