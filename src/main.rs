@@ -38,13 +38,13 @@ async fn main() {
                     if play != *prev {
                         log::debug!("updating play_by_play.json");
                         let json = serde_json::to_string_pretty(&play).unwrap();
-                        std::fs::write("data/play_by_play.json", &json).unwrap();
+                        std::fs::write(args.out_dir.join("play_by_play.json"), &json).unwrap();
                         *prev = play;
                     }
                 } else {
                     log::debug!("updating play_by_play.json");
                     let json = serde_json::to_string_pretty(&play).unwrap();
-                    std::fs::write("data/play_by_play.json", &json).unwrap();
+                    std::fs::write(args.out_dir.join("play_by_play.json"), &json).unwrap();
                     last_play = Some(play);
                 }
             } else {
