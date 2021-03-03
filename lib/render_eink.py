@@ -119,7 +119,7 @@ def _render_teams(draw, game: models.Game, display_width: int):
         BORDER_WIDTH,
     )
     teams_height = render_right_aligned(
-        BORDER_WIDTH,
+        draw,
         large_font,
         game.away_abv(),
         display_width,
