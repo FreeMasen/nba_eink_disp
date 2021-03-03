@@ -55,31 +55,32 @@ def _render_current(display, game: models.Game):
     if not game.dirty():
         return
     (image, draw) = _gen_image_draw(display)
-    teams_height = _render_teams(draw, game)
-    score_height = _render_score(draw, game, teams_height)
-    (clock_width, _) = small_font.getsize(game.clock or '00:00')
-    draw.text(
-        ((display.width // 2) - (clock_width // 2), BORDER_WIDTH // 2),
+    teams_height = _render_teams(draw, game, display.width)
+    score_height = _render_score(draw, game, teams_height, display.width)
+    render_centered(
+        draw,
+        small_font,
         game.clock or '00:00',
-        font=small_font,
-        fill=FOREGROUND_COLOR
+        display.width,
+        BORDER_WIDTH // 2
     )
-    actions_y = teams_height + score_height + 10 + 5 + 5
+    actions_y = (teams_height + BORDER_WIDTH) + (score_height + BORDER_WIDTH) + BORDER_WIDTH
     events = game.last_few_events()
-    draw.text(
-        (5, actions_y),
+    render_left_aligned(
+        draw,
+        small_font,
         events,
-        font=small_font,
-        fill=FOREGROUND_COLOR
+        display.width,
+        actions_y
     )
-
+    
     display.image(image)
     display.display()
 
 def _render_next(display, game: models.Game):
     print('_render_next')
     (image, draw) = _gen_image_draw(display)
-    teams_height = _render_teams(draw, game)
+    teams_height = _render_teams(draw, game, display.width)
     render_centered(
         draw, medium_font, util.format_duration(game.start_time), display.width, teams_height + BORDER_WIDTH * 2
     )
@@ -89,8 +90,8 @@ def _render_next(display, game: models.Game):
 def _render_last(display, game: models.Game):
     print('render_last')
     (image, draw) = _gen_image_draw(display)
-    teams_height = _render_teams(draw, game)
-    score_height = _render_score(draw, game, teams_height)
+    teams_height = _render_teams(draw, game, display.width)
+    score_height = _render_score(draw, game, teams_height, display.width)
     (team, cat, bs) = game.next_box()
     if bs is None:
         print('no box score...')
@@ -109,35 +110,37 @@ def _render_last(display, game: models.Game):
     display.image(image)
     display.display()
 
-def _render_teams(draw, game):
-    draw.text(
-        (BORDER_WIDTH, BORDER_WIDTH),
+def _render_teams(draw, game: models.Game, display_width: int):
+    render_left_aligned(
+        draw,
+        large_font,
         game.home_abv(),
-        font=large_font,
-        fill=FOREGROUND_COLOR
+        display_width,
+        BORDER_WIDTH,
     )
-    (away_size, teams_height) = large_font.getsize(game.away_abv())
-    draw.text(
-        (display.width - away_size - BORDER_WIDTH, BORDER_WIDTH),
+    teams_height = render_right_aligned(
+        BORDER_WIDTH,
+        large_font,
         game.away_abv(),
-        font=large_font,
-        fill=FOREGROUND_COLOR
+        display_width,
+        BORDER_WIDTH,
     )
     return teams_height
 
-def _render_score(draw, game, teams_height):
-    draw.text(
-        (BORDER_WIDTH, teams_height + BORDER_WIDTH * 2),
+def _render_score(draw, game: models.Game, teams_height: int, display_width: int):
+    render_left_aligned(
+        draw,
+        large_font,
         game.home_score(),
-        font=large_font,
-        fill=FOREGROUND_COLOR
+        display_width,
+        teams_height + BORDER_WIDTH * 2,
     )
-    (away_width, score_height) = large_font.getsize(game.away_score())
-    draw.text(
-        (display.width - away_width - BORDER_WIDTH, teams_height + BORDER_WIDTH * 2),
+    score_height = render_right_aligned(
+        draw,
+        large_font,
         game.away_score(),
-        font=large_font,
-        fill=FOREGROUND_COLOR
+        display_width,
+        teams_height + BORDER_WIDTH * 2,
     )
     return score_height
 

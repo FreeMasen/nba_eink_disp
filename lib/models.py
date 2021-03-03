@@ -246,7 +246,8 @@ class Game:
         return int((self.end_time - now).total_seconds() / 60)
 
     def last_few_events(self) -> str:
-        if len(self.play_by_play) <= 0:
+        if self.play_by_play is None or len(self.play_by_play) <= 0:
+            print('game has no play_by_play events')
             return ''
         return '\n'.join([p.desc for p in self.play_by_play[-3:]])
 
