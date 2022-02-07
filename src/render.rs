@@ -102,7 +102,7 @@ fn next_game_time(time: chrono::DateTime<Utc>) -> Line {
     let start = Local.from_utc_datetime(&time.naive_utc());
     log::trace!("now: {:?}", now);
     log::trace!("sta: {:?}", start);
-    let when = if dbg!(start.date()) < dbg!(now.date()) {
+    let when = if start.date() < now.date() {
         format!("{}", start.format("%a %l:%M%p"))
     } else {
         format!("{}", start.format("%l:%M%p"))

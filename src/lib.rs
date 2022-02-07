@@ -198,7 +198,7 @@ impl Game {
     }
 
     pub fn is_active(&self) -> bool {
-        dbg!(!self.has_ended()) && dbg!(self.start_time < Utc::now())
+        !self.has_ended() && self.start_time < Utc::now()
     }
 }
 
