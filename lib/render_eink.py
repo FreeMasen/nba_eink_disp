@@ -1,13 +1,11 @@
 import os
-import datetime
-import time
+from typing import List
 import digitalio
 import busio
 import board
 from adafruit_epd.epd import Adafruit_EPD
 from PIL import Image, ImageDraw, ImageFont
 from adafruit_epd.ssd1675 import Adafruit_SSD1675
-from . import util, models
 
 MINUTE = 60
 HOUR = 60 * MINUTE
@@ -40,200 +38,40 @@ display = Adafruit_SSD1675(
 display.fill(Adafruit_EPD.WHITE)
 display.rotation = 3
 
-last_update = datetime.datetime(1970, 1, 1)
-updating = False
-state = None
-
 def _gen_image_draw(display):
     image = Image.new("L", (display.width, display.height))
     draw = ImageDraw.Draw(image)
     draw.rectangle((0, 0, display.width, display.height), fill=BACKGROUND_COLOR)
     return (image, draw)
 
-def _render_current(display, game: models.Game):
-    print('_render_current')
-    if not game.dirty():
-        return
-    (image, draw) = _gen_image_draw(display)
-    teams_height = _render_teams(draw, game, display.width)
-    score_height = _render_score(draw, game, teams_height, display.width)
-    period_height = render_centered(
-        draw,
-        small_font,
-        game.get_period(),
-        display.width,
-        BORDER_WIDTH // 2
-    )
-    render_centered(
-        draw,
-        small_font,
-        game.clock or '00:00',
-        display.width,
-        BORDER_WIDTH + period_height
-    )
-    actions_y = (teams_height + BORDER_WIDTH) + (score_height + BORDER_WIDTH) + BORDER_WIDTH
-    events = game.last_few_events()
-    render_left_aligned(
-        draw,
-        small_font,
-        events,
-        display.width,
-        actions_y
-    )
-    
-    display.image(image)
-    display.display()
-
-def _render_next(display, game: models.Game):
-    print('_render_next')
-    (image, draw) = _gen_image_draw(display)
-    teams_height = _render_teams(draw, game, display.width)
-    render_centered(
-        draw, medium_font, util.format_duration(game.start_time), display.width, teams_height + BORDER_WIDTH * 2
-    )
-    display.image(image)
-    display.display()
-
-def _render_last(display, game: models.Game):
-    print('render_last')
-    (image, draw) = _gen_image_draw(display)
-    teams_height = _render_teams(draw, game, display.width)
-    score_height = _render_score(draw, game, teams_height, display.width)
-    (team, cat, bs) = game.next_box()
-    if bs is None:
-        print('no box score...')
-        display.image(image)
-        display.display()
-        return
-    stat_top = teams_height + score_height + (BORDER_WIDTH * 3)
-    render_text = render_left_aligned
-    if (team or '') == game.away_abv():
-        render_text = render_right_aligned
-
-    stat_height = render_text(draw, large_font, cat or '???', display.width, stat_top)
-    value_top = BORDER_WIDTH + stat_top + stat_height
-    name_value = f'{bs.name}: {bs.value}'
-    render_text(draw, large_font, name_value, display.width, value_top)
-    display.image(image)
-    display.display()
-
-def _render_teams(draw, game: models.Game, display_width: int):
-    render_left_aligned(
-        draw,
-        large_font,
-        game.home_abv(),
-        display_width,
-        BORDER_WIDTH,
-    )
-    teams_height = render_right_aligned(
-        draw,
-        large_font,
-        game.away_abv(),
-        display_width,
-        BORDER_WIDTH,
-    )
-    return teams_height
-
-def _render_score(draw, game: models.Game, teams_height: int, display_width: int):
-    render_left_aligned(
-        draw,
-        large_font,
-        game.home_score(),
-        display_width,
-        teams_height + BORDER_WIDTH * 2,
-    )
-    score_height = render_right_aligned(
-        draw,
-        large_font,
-        game.away_score(),
-        display_width,
-        teams_height + BORDER_WIDTH * 2,
-    )
-    return score_height
-
-def render_right_aligned(draw, font, text, display_width, y):
-    (w, h) = font.getsize(text)
-    xy = (display_width - w - BORDER_WIDTH, y)
-    draw.text(
-        xy,
-        text,
-        font=font,
-        fill=FOREGROUND_COLOR
-    )
-    return h
-
-def render_centered(draw, font, text, display_width, y):
-    (w, h) = font.getsize(text)
-    draw.text(
-        ((display.width // 2) - (w // 2), y),
-        text,
-        font=font,
-        fill=FOREGROUND_COLOR
-    )
-    return h
-
-def render_left_aligned(draw, font, text, display_width, y):
-    (_, h) = font.getsize(text)
-    draw.text(
-        (BORDER_WIDTH, y),
-        text,
-        font=font,
-        fill=FOREGROUND_COLOR
-    )
-    return h
-
-def _render_unknown(display):
-    print('_render_unknown')
-    (image, draw) = _gen_image_draw(display)
-    message = 'It must be the off season...'
-    (width, height) = large_font.getsize(message)
-    
-    draw.text(
-        ((display.width // 2) - (width // 2), (display.height // 2) - (height // 2)),
-        message,
-        font=large_font,
-        fill=FOREGROUND_COLOR
-    )
-    display.image(image)
-    display.display()
-
-def render(st: models.State):
+def render(lines: List[str]):
     global display
-    global state
-    global last_update
-    global updating
-    state = st
-    now = datetime.datetime.now()
-    secs = (now - last_update).total_seconds()
-    print('eink_render', last_update, secs)
-    if secs > 60 and not updating:
-        updating = True
-        tick()
-        updating = False
-        last_update = datetime.datetime.now()
+    (image, draw) = _gen_image_draw(display)
+    top = 5
+    for line in lines:
+        char_ct = len(line)
+        if char_ct == 0:
+            continue
 
-def tick():
-    global state
-    global display
-    if state is not None:
-        if state.current_game is not None:
-            print('minutes_since_end', state.current_game.minutes_since_end())
-            if state.current_game.minutes_since_end() > 30:
-                _render_last(display, state.current_game)
-                return
-            minutes_until_start = state.current_game.minutes_until_start()
-            print('minutes_until_start', minutes_until_start)
-            if minutes_until_start in range(60 * 3):
-                _render_next(display, state.current_game)
-                return
-            if minutes_until_start <= 0:
-                _render_current(display, state.current_game)
-                return
-        if state.last_game is not None:
-            _render_last(display, state.last_game)
-            return
-        if state.next_game is not None:
-            _render_next(display, state.next_game)
-            return
-    _render_unknown(display)
-    time.sleep(1)
+        size = line[0]
+        if size == '1':
+            font = medium_font
+        elif size == '2':
+            font = large_font
+        else:
+            # assume 0
+            font = small_font
+        (_, height) = font.getsize(msg)
+        if char_ct == 1:
+            top += height + 5
+            continue
+        msg = line[1:]
+        draw.text(
+            (top, 5),
+            msg,
+            font=font,
+            fill=FOREGROUND_COLOR
+        )
+        top += height + 5
+    display.image(image)
+    display.display()

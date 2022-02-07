@@ -20,6 +20,88 @@ pub enum Action {
     Unknown(ActionInfo),
 }
 
+impl Action {
+    pub fn number(&self) -> i64 {
+        match self {
+            Action::Period(info) => info.number,
+            Action::JumpBall(info) => info.number,
+            Action::Points(info) => info.number,
+            Action::Rebound(info) => info.number,
+            Action::Stoppage(info) => info.number,
+            Action::Block(info) => info.number,
+            Action::Turnover(info) => info.number,
+            Action::Steal(info) => info.number,
+            Action::Timeout(info) => info.number,
+            Action::Substitution(info) => info.number,
+            Action::Foul(info) => info.number,
+            Action::FreeThrow(info) => info.number,
+            Action::Violation(info) => info.number,
+            Action::Game(info) => info.number,
+            Action::Unknown(info) => info.number,
+        }
+    }
+
+    pub fn quarter(&self) -> u8 {
+        match self {
+            Action::Period(info) => info.quarter,
+            Action::JumpBall(info) => info.quarter,
+            Action::Points(info) => info.quarter,
+            Action::Rebound(info) => info.quarter,
+            Action::Stoppage(info) => info.quarter,
+            Action::Block(info) => info.quarter,
+            Action::Turnover(info) => info.quarter,
+            Action::Steal(info) => info.quarter,
+            Action::Timeout(info) => info.quarter,
+            Action::Substitution(info) => info.quarter,
+            Action::Foul(info) => info.quarter,
+            Action::FreeThrow(info) => info.quarter,
+            Action::Violation(info) => info.quarter,
+            Action::Game(info) => info.quarter,
+            Action::Unknown(info) => info.quarter,
+        }
+    }
+
+    pub fn desc(&self) -> &str {
+        match self {
+            Action::Period(info) => &info.desc,
+            Action::JumpBall(info) => &info.desc,
+            Action::Points(info) => &info.desc,
+            Action::Rebound(info) => &info.desc,
+            Action::Stoppage(info) => &info.desc,
+            Action::Block(info) => &info.desc,
+            Action::Turnover(info) => &info.desc,
+            Action::Steal(info) => &info.desc,
+            Action::Timeout(info) => &info.desc,
+            Action::Substitution(info) => &info.desc,
+            Action::Foul(info) => &info.desc,
+            Action::FreeThrow(info) => &info.desc,
+            Action::Violation(info) => &info.desc,
+            Action::Game(info) => &info.desc,
+            Action::Unknown(info) => &info.desc,
+        }
+    }
+
+    pub fn clock(&self) -> &str {
+        match self {
+            Action::Period(info) => &info.clock,
+            Action::JumpBall(info) => &info.clock,
+            Action::Points(info) => &info.clock,
+            Action::Rebound(info) => &info.clock,
+            Action::Stoppage(info) => &info.clock,
+            Action::Block(info) => &info.clock,
+            Action::Turnover(info) => &info.clock,
+            Action::Steal(info) => &info.clock,
+            Action::Timeout(info) => &info.clock,
+            Action::Substitution(info) => &info.clock,
+            Action::Foul(info) => &info.clock,
+            Action::FreeThrow(info) => &info.clock,
+            Action::Violation(info) => &info.clock,
+            Action::Game(info) => &info.clock,
+            Action::Unknown(info) => &info.clock,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct ActionInfo {
     #[serde(alias = "actionNumber")]

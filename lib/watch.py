@@ -1,85 +1,59 @@
-import datetime
-import time
-import json
-import os
+import time, os
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
 import typing
 
-from watchdog.observers import Observer
-from watchdog.events import PatternMatchingEventHandler
-from . import models
 
-Callback = typing.Callable[[models.State], None]
+class Watcher:
+    # Set the directory on watch
+    datafile = ""
 
-def load_last_game(data_dir: str):
-    return load_json(data_dir, 'last_game.json', 'last game')
+    def __init__(self, datafile: str, render: typing.Callable[[typing.List[str]], None]):
+        self.datafile = datafile
+        self.render = render
+        self.observer = Observer()
 
-def load_next_game(data_dir: str):
-    return load_json(data_dir, 'next_game.json', 'next game')
+    def run(self):
+        event_handler = Handler(self.render)
+        if os.path.exists(self.datafile):
+            event_handler.update(self.datafile)
+        self.observer.schedule(event_handler, self.datafile, recursive = False)
+        self.observer.start()
+        try:
+            while True:
+                time.sleep(5)
+        except:
+            self.observer.stop()
+            print("Observer Stopped")
 
-def load_todays_game(data_dir: str):
-    today = load_json(data_dir, 'today.json', 'today')
-    if today is None or len(today) == 0:
-        return None
-    return today
+        self.observer.join()
 
-def load_box_score(data_dir: str):
-    return load_json(data_dir, 'box_score.json', 'box_score')
 
-def load_play_by_play(data_dir: str):
-    return load_json(data_dir, 'play_by_play.json', 'play by play')
+class Handler(FileSystemEventHandler):
 
-def load_json(data_dir: str, file: str, name: str):
-    try:
-        with open(os.path.join(data_dir, file)) as file:
-            return json.load(file)
-    except Exception as e:
-        # print(f'failed to update {name}: {e}')
-        pass
+    def __init__(self, render: typing.Callable[[typing.List[str]], None]):
+        self.render = render
 
-def watch_data_file(data_dir: str, cb: Callback):
-    global state
-    state = models.State(
-        load_todays_game(data_dir),
-        load_play_by_play(data_dir),
-        load_next_game(data_dir),
-        load_last_game(data_dir),
-        load_box_score(data_dir)
-    )
-    obs = Observer()
-    handler = PatternMatchingEventHandler(['*.json'], None, False, True)
-
-    def updated(event):
-        if event.event_type not in ['created', 'modified']:
+    def on_created(self, event):
+        if event.is_directory:
             return
-        if 'today.json' in event.src_path:
-            game = load_todays_game(data_dir)
-            state.update_current(game, None)
-        if 'next_game.json' in event.src_path:
-            game = load_next_game(data_dir)
-            state.update_next(game)
-        elif 'box_score.json' in event.src_path:
-            box_score = load_box_score(data_dir)
-            state.update_last(None, box_score)
-        elif 'play_by_play.json' in event.src_path:
-            play_by_play = load_play_by_play(data_dir)
-            state.update_current(None, play_by_play)
-        elif 'last_game.json' in event.src_path:
-            game = load_last_game(data_dir)
-            state.update_last(game, None)
+        self.update(event.src_path)
 
-        cb(state)
+    def on_modified(self, event):
+        if event.is_directory:
+            return
+        self.update(event.src_path)
 
-    handler.on_any_event = updated
-    obs.schedule(handler, data_dir)
-    obs.start()
-    try:
-        while True:
-            cb(state)
-            time.sleep(60)
-    finally:
-        obs.stop()
-        obs.join()
+    def update(self, path: str):
+        try:
+            with open(path) as f:
+                contents = f.read()
+        except Exception as ex:
+            print(f"failed to update {ex}")
+            return
+        self.render(contents.splitlines())
 
-
-def start(data_dir: str, cb: Callback):
-    watch_data_file(data_dir, cb)
+def start(datafile: str, render: typing.Callable[[typing.List[str]], None]):
+    print('start')
+    watch = Watcher(datafile, render)
+    watch.run()
