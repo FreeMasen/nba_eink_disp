@@ -52,7 +52,6 @@ def render(lines: List[str]):
         char_ct = len(line)
         if char_ct == 0:
             continue
-
         size = line[0]
         if size == '1':
             font = medium_font
