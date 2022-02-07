@@ -3,7 +3,7 @@ from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import typing
 
-
+logfile = open("events.log", "w+")
 class Watcher:
     # Set the directory on watch
     datafile = ""
@@ -25,7 +25,7 @@ class Watcher:
         except:
             self.observer.stop()
             print("Observer Stopped")
-
+        logfile.close()
         self.observer.join()
 
 
@@ -35,21 +35,24 @@ class Handler(FileSystemEventHandler):
         self.render = render
 
     def on_created(self, event):
+        print("Created event", file=logfile, flush=True)
         if event.is_directory:
             return
         self.update(event.src_path)
 
     def on_modified(self, event):
+        print("Modified event", file=logfile, flush=True)
         if event.is_directory:
             return
         self.update(event.src_path)
 
     def update(self, path: str):
+        print("update", file=logfile, flush=True)
         try:
             with open(path) as f:
                 contents = f.read()
         except Exception as ex:
-            print(f"failed to update {ex}")
+            print(f"failed to update {ex}", file=logfile, flush=True)
             return
         self.render(contents.splitlines())
 
