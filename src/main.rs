@@ -75,7 +75,7 @@ async fn game_ended(game: Game, team: &str, file: impl AsRef<Path>, tick: u64) {
         .map(|g| g.start_time)
         .unwrap_or_else(|| chrono::Utc::now() + chrono::Duration::hours(12));
     let trailer = if let Some(next) = next_game.as_ref() {
-        render::game(next)
+        render::next_up(next, team)
     } else {
         String::new()
     };

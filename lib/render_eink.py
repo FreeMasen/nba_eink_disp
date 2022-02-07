@@ -72,6 +72,6 @@ def render(lines: List[str]):
             font=font,
             fill=FOREGROUND_COLOR
         )
-        top += height + 1
+        top += height
     display.image(image)
     display.display()

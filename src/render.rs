@@ -72,7 +72,7 @@ pub fn render_complete_game(game: &Game) -> Vec<Line> {
     ret
 }
 
-pub fn render_pending_game(game: &Game) -> Vec<Line> {
+fn render_pending_game(game: &Game) -> Vec<Line> {
     let mut ret = Vec::new();
     let now = Local.from_utc_datetime(&Utc::now().naive_utc());
     let start = Local.from_utc_datetime(&game.start_time.naive_utc());
@@ -85,6 +85,27 @@ pub fn render_pending_game(game: &Game) -> Vec<Line> {
     ret.push(teams_line(game));
     ret.push(record_line(game));
     ret
+}
+
+pub fn next_up(game: &Game, home_team: &str) -> String {
+    let time = next_game_time(game.start_time);
+    let teams = if game.home.tri_code == home_team {
+        format!("{} v {}", game.home.tri_code, game.away.tri_code)
+    } else {
+        format!("{} @ {}", game.away.tri_code, game.home.tri_code)
+    };
+    [time, Line::medium(teams)].iter().map(Line::render).collect()
+}
+
+fn next_game_time(time: chrono::DateTime<Utc>) -> Line {
+    let now = Local.from_utc_datetime(&Utc::now().naive_utc());
+    let start = Local.from_utc_datetime(&time.naive_utc());
+    let when = if start.date() < now.date() {
+        format!("{}", start.format("%a %l:%M%p"))
+    } else {
+        format!("{}", start.format("%l:%M%p"))
+    };
+    Line::small(when)
 }
 
 pub fn record_line(game: &Game) -> Line {
