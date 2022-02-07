@@ -21,7 +21,7 @@ class Watcher:
         self.observer.start()
         try:
             while True:
-                time.sleep(5)
+                time.sleep(0.5)
         except:
             self.observer.stop()
             print("Observer Stopped")
@@ -33,6 +33,7 @@ class Handler(FileSystemEventHandler):
 
     def __init__(self, render: typing.Callable[[typing.List[str]], None]):
         self.render = render
+        self.last_update = time.time() - 300
 
     def on_created(self, event):
         print("Created event", file=logfile, flush=True)
@@ -48,6 +49,9 @@ class Handler(FileSystemEventHandler):
 
     def update(self, path: str):
         print("update", file=logfile, flush=True)
+        if time.time() - self.last_update < 300 :
+            return
+        self.last_update = time.time()
         try:
             with open(path) as f:
                 contents = f.read()
