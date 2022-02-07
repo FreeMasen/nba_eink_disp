@@ -100,6 +100,8 @@ pub fn next_up(game: &Game, home_team: &str) -> String {
 fn next_game_time(time: chrono::DateTime<Utc>) -> Line {
     let now = Local.from_utc_datetime(&Utc::now().naive_utc());
     let start = Local.from_utc_datetime(&time.naive_utc());
+    log::trace!("now: {:?}", now);
+    log::trace!("sta: {:?}", start);
     let when = if start.date() < now.date() {
         format!("{}", start.format("%a %l:%M%p"))
     } else {
