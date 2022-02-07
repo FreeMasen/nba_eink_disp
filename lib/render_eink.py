@@ -61,17 +61,17 @@ def render(lines: List[str]):
         else:
             # assume 0
             font = small_font
-        (_, height) = font.getsize(msg)
+        msg = line[1:]
+        (width, height) = font.getsize(msg)
         if char_ct == 1:
             top += height + 5
             continue
-        msg = line[1:]
         draw.text(
-            (top, 5),
+            ((display.width // 2) - (width // 2), top),
             msg,
             font=font,
             fill=FOREGROUND_COLOR
         )
-        top += height + 5
+        top += height + 1
     display.image(image)
     display.display()

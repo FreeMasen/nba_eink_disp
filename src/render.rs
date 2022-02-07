@@ -2,14 +2,10 @@ use std::fmt::Display;
 
 use crate::{
     action::Action,
-    box_score::{BoxScore, TopPlayerByValue},
+    box_score::BoxScore,
     Game, Line,
 };
 use chrono::{Local, TimeZone, Utc};
-
-const S_FONT_MAX_WIDTH: usize = 100;
-const M_FONT_MAX_WIDTH: usize = 50;
-const L_FONT_MAX_WIDTH: usize = 25;
 
 pub fn game(game: &Game) -> String {
     log::trace!("game");
@@ -30,8 +26,7 @@ pub fn game(game: &Game) -> String {
 fn render_active_game(game: &Game) -> Vec<Line> {
     let mut ret = Vec::new();
     let time = format!("Q{} {}", game.period.as_number(), game.clock);
-    let padding = S_FONT_MAX_WIDTH - time.len();
-    ret.push(Line::small(format!("{0}{1}{0}", " ".repeat(padding), time)));
+    ret.push(Line::small(time));
     ret.push(teams_line(game));
     ret.push(scores_line(game));
     ret
@@ -71,11 +66,7 @@ pub fn render_complete_game(game: &Game) -> Vec<Line> {
     let mut ret = Vec::new();
     let start = Local.from_utc_datetime(&game.start_time.naive_utc());
     let when = format!("{}", start.format("%A"));
-    ret.push(Line::small(format!(
-        "{0}{1}{0}",
-        " ".repeat(S_FONT_MAX_WIDTH - when.len()),
-        when,
-    )));
+    ret.push(Line::small(when));
     ret.push(teams_line(game));
     ret.push(scores_line(game));
     ret
@@ -90,26 +81,19 @@ pub fn render_pending_game(game: &Game) -> Vec<Line> {
     } else {
         format!("{}", start.format("%l:%M%p"))
     };
-    ret.push(Line::small(center(S_FONT_MAX_WIDTH, &when)));
+    ret.push(Line::small(when));
     ret.push(teams_line(game));
     ret.push(record_line(game));
     ret
 }
 
 pub fn record_line(game: &Game) -> Line {
-    const PADDING: &str = "     ";
     let h_record = format!("W {} L {}", game.home.win, game.home.loss);
     let a_record = format!("W {} L {}", game.away.win, game.away.loss);
-    let middle = M_FONT_MAX_WIDTH
-        .saturating_sub(h_record.len() + 5 + a_record.len() + 5)
-        .max(1);
     Line::Medium(format!(
-        "{prefix}{h_record}{middle}{a_record}{suffix}",
-        prefix = PADDING,
+        "{h_record} {a_record}",
         h_record = h_record,
-        middle = " ".repeat(middle),
         a_record = a_record,
-        suffix = PADDING,
     ))
 }
 
@@ -122,22 +106,9 @@ pub fn scores_line(game: &Game) -> Line {
 }
 
 pub fn render_large_three_char_pair(lhs: &impl Display, rhs: &impl Display) -> Line {
-    let prefix = "     ";
-    let suffix = "     ";
-    const MIDDLE_LEN: usize = L_FONT_MAX_WIDTH - 10 - 6;
     Line::large(format!(
-        "{prefix}{home:>3}{middle}{away:>3}{suffix}",
-        prefix = prefix,
-        suffix = suffix,
-        middle = " ".repeat(MIDDLE_LEN),
+        "{home:>3} {away:>3}",
         home = lhs,
         away = rhs
     ))
-}
-
-pub fn center(max_width: usize, value: &str) -> String {
-    let remainder = max_width - value.len();
-    let prefix = " ".repeat((remainder as f32 / 2.0f32).floor() as usize);
-    let suffix = " ".repeat((remainder as f32 / 2.0f32).ceil() as usize);
-    format!("{}{}{}", prefix, value, suffix)
 }
